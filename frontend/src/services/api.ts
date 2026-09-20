@@ -13,8 +13,12 @@ import type {
   HealthResponse,
 } from '../types';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+  : '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 120000, // 2 min for heavy optimization calls
 });
@@ -71,7 +75,7 @@ export const runSimulation = (params: {
 
 export const runScenario = (params: {
   scenario_name: string;
-  scenario_params: Record<string, number | string>;
+  scenario_params: Record<string, any>;
   battery_config?: BatteryConfig;
   horizon_hours?: number;
 }): Promise<ScenarioResult> =>
@@ -102,5 +106,11 @@ export const sendChatMessage = (params: {
   conversation_history?: Array<{ role: string; content: string }>;
 }): Promise<ChatResponse> =>
   api.post('/assistant/chat', params).then(r => r.data);
+
+export const getAssistantConfig = (): Promise<{
+  vapi_public_key?: string;
+  vapi_assistant_id?: string;
+  groq_configured?: boolean;
+}> => api.get('/assistant/config').then(r => r.data);
 
 export default api;

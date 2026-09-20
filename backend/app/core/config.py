@@ -21,7 +21,11 @@ class Settings(BaseSettings):
 
     # Groq AI (optional)
     groq_api_key: str = ""
-    groq_model: str = "llama3-8b-8192"
+    groq_model: str = "openai/gpt-oss-120b"
+
+    # Vapi Voice (Public Key for WebRTC)
+    vapi_public_key: str = ""
+    vapi_assistant_id: str = ""
 
     # Optimization defaults
     default_capacity_mwh: float = 10.0

@@ -190,7 +190,7 @@ export function VoiceCallModal({
             alignItems: 'center',
             justifyContent: 'center',
             gap: 28,
-            my: 'auto',
+            margin: 'auto 0',
           }}
         >
           {/* Iridescent 3D Orb */}

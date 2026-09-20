@@ -45,6 +45,8 @@ def health():
         "status": "healthy",
         "app": settings.app_name,
         "groq_configured": bool(settings.groq_api_key),
+        "vapi_configured": bool(settings.vapi_public_key),
+        "vapi_public_key": settings.vapi_public_key,
         "version": "1.0.0",
     }
 

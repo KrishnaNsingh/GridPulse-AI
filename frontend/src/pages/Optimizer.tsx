@@ -292,12 +292,12 @@ export default function OptimizerPage() {
       )}
 
       {/* Constraint Violations */}
-      {result?.constraint_status?.violations > 0 && result.constraint_status.details.length > 0 && (
+      {Boolean(result?.constraint_status && result.constraint_status.violations > 0 && result.constraint_status.details?.length) && (
         <div className="card" style={{ marginTop: 16, background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)' }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#ef4444', marginBottom: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
-            <AlertTriangle size={14} /> Constraint Violations ({result.constraint_status.violations})
+            <AlertTriangle size={14} /> Constraint Violations ({result?.constraint_status?.violations})
           </div>
-          {result.constraint_status.details.map((d, i) => (
+          {result?.constraint_status?.details?.map((d, i) => (
             <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '3px 0', fontFamily: 'monospace' }}>
               • {d}
             </div>

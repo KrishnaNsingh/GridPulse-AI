@@ -9,8 +9,19 @@ from app.database.database import get_db, OptimizationRunDB, PriceDataDB
 from app.services.groq_service import get_ai_explanation
 from app.services.optimization_service import get_default_battery_config
 from app.forecasting.inference import get_latest_forecast
+from app.core.config import settings
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
+
+
+@router.get("/config")
+def get_assistant_config():
+    """Retrieve assistant public configuration including Vapi public key."""
+    return {
+        "vapi_public_key": settings.vapi_public_key,
+        "vapi_assistant_id": settings.vapi_assistant_id,
+        "groq_configured": bool(settings.groq_api_key),
+    }
 
 
 class ChatMessage(BaseModel):

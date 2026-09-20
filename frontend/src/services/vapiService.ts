@@ -49,9 +49,27 @@ class VapiVoiceManager {
   public getSavedConfig(): VapiConfig {
     if (typeof window === 'undefined') return {};
     return {
-      publicKey: localStorage.getItem('vapi_public_key') || '',
-      assistantId: localStorage.getItem('vapi_assistant_id') || '',
+      publicKey: localStorage.getItem('vapi_public_key') || (import.meta.env.VITE_VAPI_PUBLIC_KEY as string) || '',
+      assistantId: localStorage.getItem('vapi_assistant_id') || (import.meta.env.VITE_VAPI_ASSISTANT_ID as string) || '',
     };
+  }
+
+  public async syncBackendConfig(): Promise<VapiConfig> {
+    try {
+      const res = await fetch('/api/assistant/config');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.vapi_public_key && !localStorage.getItem('vapi_public_key')) {
+          localStorage.setItem('vapi_public_key', data.vapi_public_key);
+        }
+        if (data.vapi_assistant_id && !localStorage.getItem('vapi_assistant_id')) {
+          localStorage.setItem('vapi_assistant_id', data.vapi_assistant_id);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return this.getSavedConfig();
   }
 
   public saveConfig(config: VapiConfig) {
@@ -113,9 +131,15 @@ class VapiVoiceManager {
     systemPrompt?: string;
     onUserSpeech?: (text: string) => Promise<string>;
   }) {
-    const saved = this.getSavedConfig();
-    const apiKey = options?.apiKey || saved.publicKey;
-    const assistantId = options?.assistantId || saved.assistantId;
+    let saved = this.getSavedConfig();
+    let apiKey = options?.apiKey || saved.publicKey;
+    let assistantId = options?.assistantId || saved.assistantId;
+
+    if (!apiKey) {
+      saved = await this.syncBackendConfig();
+      apiKey = options?.apiKey || saved.publicKey;
+      assistantId = options?.assistantId || saved.assistantId;
+    }
 
     this.setStatus('connecting');
 
