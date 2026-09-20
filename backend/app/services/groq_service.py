@@ -20,21 +20,24 @@ logger = logging.getLogger(__name__)
 
 
 def _build_system_prompt() -> str:
-    return """You are GridPulse AI, an expert battery energy storage system (BESS) analyst and engineer.
+    return """You are GridPulse AI, an expert battery energy storage system (BESS) analyst and engineer directly integrated with the GridPulse platform and website settings.
 
-Your role is to EXPLAIN optimization decisions made by the GridPulse MILP optimization engine. 
-You never make or change dispatch decisions — you only explain them.
+Your role is to EXPLAIN optimization decisions, dispatch schedules, and active battery system specifications according to the website's Settings section.
+You never make or change dispatch decisions — you explain them with rigorous technical and financial precision.
 
-You speak precisely, using engineering terminology but remaining accessible.
-You reference specific numbers from the context when explaining.
-You focus on economic and physical reasoning.
-Keep responses concise (3-5 sentences unless more detail is specifically requested).
+Guidelines:
+- When asked "What is my battery configuration?", "What are my settings?", or questions about the BESS hardware parameters, state the exact active battery configuration provided in the context: Battery Name, Total Capacity (MWh), Maximum Power (MW), Efficiencies, SoC range (Min and Max %), Initial/Current SoC, and Degradation Penalty Cost ($/MWh).
+- Never claim you do not have access to the battery configuration; you have direct real-time access to the user's active BESS parameters from the Settings section.
+- You speak precisely, using engineering terminology but remaining accessible.
+- Reference specific numbers from the context when explaining.
+- Focus on economic reasoning (arbitrage spread, peak vs trough pricing) and physical constraints (degradation avoidance, thermal/C-rate limits).
+- Keep responses concise (2-4 sentences for voice and direct chats unless more breakdown is requested).
 
 Never:
 - Suggest changing the optimization result
 - Override the dispatch decision
 - Make up numbers not in the context
-- Pretend to be uncertain about what the optimizer decided"""
+- Pretend to be uncertain about what the optimizer decided or what the battery settings are"""
 
 
 def _build_context_message(context: Dict[str, Any]) -> str:
@@ -43,10 +46,12 @@ def _build_context_message(context: Dict[str, Any]) -> str:
 
     if "battery_config" in context and context["battery_config"]:
         cfg = context["battery_config"]
-        lines.append(f"Battery: {cfg.get('capacity_mwh', '?')} MWh capacity, {cfg.get('power_mw', '?')} MW power limit")
-        lines.append(f"  Efficiency: charge={cfg.get('efficiency_charge', '?'):.0%}, discharge={cfg.get('efficiency_discharge', '?'):.0%}")
-        lines.append(f"  SoC range: {cfg.get('soc_min', '?'):.0%} to {cfg.get('soc_max', '?'):.0%}")
-        lines.append(f"  Degradation cost: ${cfg.get('degradation_cost_per_mwh', '?')}/MWh\n")
+        lines.append(f"Battery Name: {cfg.get('name', 'Demo BESS')}")
+        lines.append(f"Battery Specs: {cfg.get('capacity_mwh', '?')} MWh capacity, {cfg.get('power_mw', '?')} MW power limit")
+        lines.append(f"  Efficiency: charge={cfg.get('efficiency_charge', 1.0):.0%}, discharge={cfg.get('efficiency_discharge', 1.0):.0%}")
+        lines.append(f"  SoC range: {cfg.get('soc_min', 0.1):.0%} to {cfg.get('soc_max', 0.9):.0%}, Initial/Current SoC: {cfg.get('soc_initial', 0.5):.0%}")
+        lines.append(f"  Degradation cost: ${cfg.get('degradation_cost_per_mwh', 26.5):.2f}/MWh")
+        lines.append(f"  Reserve level: {cfg.get('reserve_level', 0.5):.0%}\n")
 
     if "current_state" in context:
         state = context["current_state"]

@@ -44,7 +44,7 @@ import {
   groupSessionsByDate,
 } from '../services/chatStorage';
 import { sendChatMessage } from '../services/api';
-import { vapiService } from '../services/vapiService';
+import { vapiService, type VoiceMessageEvent } from '../services/vapiService';
 import { useAssistant } from '../context/AssistantContext';
 
 export default function AssistantPage() {
@@ -1231,35 +1231,164 @@ export default function AssistantPage() {
           }
         }}
         onUserMessageRecorded={text => {
-          if (activeSession) {
+          if (!text?.trim()) return;
+          const trimmed = text.trim();
+          setSessions(prevSessions => {
+            let working = [...prevSessions];
+            let targetId = activeSessionId || working[0]?.id;
+            if (!targetId || !working.some(s => s.id === targetId)) {
+              const newSess = createNewSession(trimmed, 'Axora Voice (Vapi)');
+              working = [newSess, ...working];
+              targetId = newSess.id;
+              setCurrentActiveId(newSess.id);
+              setActiveSessionId(newSess.id);
+            }
+            const target = working.find(s => s.id === targetId);
+            if (!target) return prevSessions;
+
+            const msgs = target.messages;
+            const lastMsg = msgs[msgs.length - 1];
+            if (lastMsg && lastMsg.role === 'user') {
+              const lastLower = lastMsg.content.trim().toLowerCase();
+              const newLower = trimmed.toLowerCase();
+              if (lastLower === newLower || lastLower.includes(newLower)) {
+                return prevSessions;
+              }
+              if (newLower.startsWith(lastLower) || newLower.includes(lastLower)) {
+                const updatedMsgs = [...msgs.slice(0, -1), { ...lastMsg, content: trimmed }];
+                const updated = working.map(s =>
+                  s.id === targetId ? { ...s, messages: updatedMsgs, updatedAt: Date.now() } : s
+                );
+                saveStoredSessions(updated);
+                return updated;
+              }
+            }
             const userMsg: StoredMessage = {
-              id: 'msg-' + Date.now(),
+              id: 'voice-u-' + Date.now(),
               role: 'user',
-              content: text,
+              content: trimmed,
               timestamp: Date.now(),
             };
-            const updated = sessions.map(s =>
-              s.id === activeSession.id ? { ...s, messages: [...s.messages, userMsg] } : s
+            const updatedTitle = target.title === 'New Chat' || target.messages.length === 0
+              ? (trimmed.length > 32 ? trimmed.substring(0, 32) + '...' : trimmed)
+              : target.title;
+
+            const updated = working.map(s =>
+              s.id === targetId
+                ? { ...s, title: updatedTitle, messages: [...s.messages, userMsg], updatedAt: Date.now() }
+                : s
             );
-            setSessions(updated);
             saveStoredSessions(updated);
-          }
+            return updated;
+          });
         }}
         onAssistantResponse={text => {
-          if (activeSession) {
+          if (!text?.trim()) return;
+          const trimmed = text.trim();
+          setSessions(prevSessions => {
+            let working = [...prevSessions];
+            let targetId = activeSessionId || working[0]?.id;
+            if (!targetId || !working.some(s => s.id === targetId)) {
+              const newSess = createNewSession('Voice Conversation', 'Axora Voice (Vapi)');
+              working = [newSess, ...working];
+              targetId = newSess.id;
+              setCurrentActiveId(newSess.id);
+              setActiveSessionId(newSess.id);
+            }
+            const target = working.find(s => s.id === targetId);
+            if (!target) return prevSessions;
+
+            const msgs = target.messages;
+            const lastMsg = msgs[msgs.length - 1];
+            if (lastMsg && lastMsg.role === 'assistant') {
+              const lastLower = lastMsg.content.trim().toLowerCase();
+              const newLower = trimmed.toLowerCase();
+              if (lastLower === newLower || lastLower.includes(newLower)) {
+                return prevSessions;
+              }
+              if (newLower.startsWith(lastLower) || newLower.includes(lastLower)) {
+                const updatedMsgs = [...msgs.slice(0, -1), { ...lastMsg, content: trimmed }];
+                const updated = working.map(s =>
+                  s.id === targetId ? { ...s, messages: updatedMsgs, updatedAt: Date.now() } : s
+                );
+                saveStoredSessions(updated);
+                return updated;
+              }
+            }
             const aiMsg: StoredMessage = {
-              id: 'msg-' + Date.now(),
+              id: 'voice-a-' + Date.now(),
               role: 'assistant',
-              content: text,
+              content: trimmed,
               timestamp: Date.now(),
               model: 'Axora Voice (Vapi)',
             };
-            const updated = sessions.map(s =>
-              s.id === activeSession.id ? { ...s, messages: [...s.messages, aiMsg] } : s
+            const updated = working.map(s =>
+              s.id === targetId ? { ...s, messages: [...s.messages, aiMsg], updatedAt: Date.now() } : s
             );
-            setSessions(updated);
             saveStoredSessions(updated);
-          }
+            return updated;
+          });
+        }}
+        onCallEnded={voiceMsgs => {
+          if (!voiceMsgs || voiceMsgs.length === 0) return;
+          setSessions(prevSessions => {
+            let working = [...prevSessions];
+            let targetId = activeSessionId || working[0]?.id;
+            if (!targetId || !working.some(s => s.id === targetId)) {
+              const firstUserMsg = voiceMsgs.find(m => m.role === 'user');
+              const newSess = createNewSession(firstUserMsg?.content || 'Voice Session', 'Axora Voice (Vapi)');
+              working = [newSess, ...working];
+              targetId = newSess.id;
+              setCurrentActiveId(newSess.id);
+              setActiveSessionId(newSess.id);
+            }
+            const target = working.find(s => s.id === targetId);
+            if (!target) return prevSessions;
+
+            // Filter out fragmented clauses that are contained in longer sentences
+            const cleanedVoiceMsgs = voiceMsgs.filter((vm, idx) => {
+              const text = vm.content.trim().toLowerCase();
+              return !voiceMsgs.some(
+                (other, oIdx) =>
+                  oIdx !== idx &&
+                  other.role === vm.role &&
+                  other.content.trim().toLowerCase().includes(text) &&
+                  other.content.trim().length > vm.content.trim().length
+              );
+            });
+
+            const existingContents = new Set(target.messages.map(m => m.content.trim().toLowerCase()));
+            const toAdd: StoredMessage[] = [];
+
+            cleanedVoiceMsgs.forEach((vm, idx) => {
+              const trimmed = vm.content.trim();
+              if (trimmed && !existingContents.has(trimmed.toLowerCase())) {
+                existingContents.add(trimmed.toLowerCase());
+                toAdd.push({
+                  id: `voice-sync-${Date.now()}-${idx}`,
+                  role: vm.role,
+                  content: trimmed,
+                  timestamp: Date.now() + idx,
+                  model: vm.role === 'assistant' ? 'Axora Voice (Vapi)' : undefined,
+                });
+              }
+            });
+
+            if (toAdd.length === 0) return prevSessions;
+
+            const firstUser = voiceMsgs.find(m => m.role === 'user');
+            const updatedTitle = (target.title === 'New Chat' || target.messages.length === 0) && firstUser
+              ? (firstUser.content.length > 32 ? firstUser.content.substring(0, 32) + '...' : firstUser.content)
+              : target.title;
+
+            const updated = working.map(s =>
+              s.id === targetId
+                ? { ...s, title: updatedTitle, messages: [...s.messages, ...toAdd], updatedAt: Date.now() }
+                : s
+            );
+            saveStoredSessions(updated);
+            return updated;
+          });
         }}
       />
 

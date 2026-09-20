@@ -129,6 +129,7 @@ class VapiVoiceManager {
     apiKey?: string;
     assistantId?: string;
     systemPrompt?: string;
+    firstMessage?: string;
     onUserSpeech?: (text: string) => Promise<string>;
   }) {
     let saved = this.getSavedConfig();
@@ -176,10 +177,22 @@ class VapiVoiceManager {
         this.vapiInstance.on('message', (message: any) => {
           if (message.type === 'transcript') {
             const role = message.role === 'user' ? 'user' : 'assistant';
-            this.emitMessage({
-              role,
-              content: message.transcript,
-              isPartial: message.transcriptType === 'partial',
+            if (message.transcript && message.transcript.trim()) {
+              this.emitMessage({
+                role,
+                content: message.transcript.trim(),
+                isPartial: message.transcriptType === 'partial',
+              });
+            }
+          } else if (message.type === 'conversation-update' && Array.isArray(message.conversation)) {
+            message.conversation.forEach((item: any) => {
+              if (item && item.content && (item.role === 'user' || item.role === 'assistant')) {
+                this.emitMessage({
+                  role: item.role,
+                  content: item.content.trim(),
+                  isPartial: false,
+                });
+              }
             });
           }
         });
@@ -188,14 +201,31 @@ class VapiVoiceManager {
           console.error('[Vapi Error]', err);
           this.emitError(err);
           // If connection fails, switch gracefully to browser fallback
-          this.startBrowserFallback(options?.onUserSpeech);
+          this.startBrowserFallback(options);
         });
 
         if (assistantId && assistantId.length > 5) {
-          await this.vapiInstance.start(assistantId);
+          const overrides: any = {
+            firstMessage: options?.firstMessage,
+          };
+          if (options?.systemPrompt) {
+            overrides.model = {
+              provider: 'openai',
+              model: 'gpt-4o-mini',
+              messages: [
+                {
+                  role: 'system',
+                  content: options.systemPrompt,
+                },
+              ],
+            };
+          }
+          await this.vapiInstance.start(assistantId, overrides);
         } else {
-          // Start with assistant configuration object
+          // Start with assistant configuration object containing full BESS system prompt
           await this.vapiInstance.start({
+            firstMessage: options?.firstMessage ||
+              "Hello! I am Axora, your GridPulse AI voice copilot connected to your website battery settings. How can I assist you today?",
             transcriber: {
               provider: 'deepgram',
               model: 'nova-2',
@@ -208,13 +238,13 @@ class VapiVoiceManager {
                 {
                   role: 'system',
                   content: options?.systemPrompt ||
-                    "You are Axora & GridPulse AI, an intelligent, helpful voice assistant specializing in analytics, grid energy arbitrage, and creative tasks. Keep answers concise, natural, and conversational.",
+                    "You are Axora & GridPulse AI, an intelligent, helpful voice assistant specializing in analytics and grid energy arbitrage. Keep answers concise, natural, and conversational.",
                 },
               ],
             },
             voice: {
-              provider: '11labs',
-              voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel
+              provider: 'cartesia',
+              voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
             },
             name: 'Axora Voice Assistant',
           });
@@ -227,13 +257,16 @@ class VapiVoiceManager {
     }
 
     // Start browser fallback mode
-    await this.startBrowserFallback(options?.onUserSpeech);
+    await this.startBrowserFallback(options);
   }
 
   /**
    * High-fidelity Browser Web Speech + Audio Analyzer Fallback
    */
-  private async startBrowserFallback(onUserSpeech?: (text: string) => Promise<string>) {
+  private async startBrowserFallback(options?: {
+    onUserSpeech?: (text: string) => Promise<string>;
+    firstMessage?: string;
+  }) {
     this.isFallbackMode = true;
     try {
       // Setup audio analyzer for microphone volume levels
@@ -302,10 +335,9 @@ class VapiVoiceManager {
             });
 
             // Get response from handler
-            if (onUserSpeech) {
-              this.speakBrowser("Processing your query...");
+            if (options?.onUserSpeech) {
               try {
-                const aiReply = await onUserSpeech(finalTranscript.trim());
+                const aiReply = await options.onUserSpeech(finalTranscript.trim());
                 this.emitMessage({
                   role: 'assistant',
                   content: aiReply,
@@ -342,10 +374,11 @@ class VapiVoiceManager {
       }
 
       this.setStatus('connected');
-      this.speakBrowser("Axora Voice connected. How can I help you today?");
+      const greeting = options?.firstMessage || "Axora Voice connected. How can I help you today?";
+      this.speakBrowser(greeting);
       this.emitMessage({
         role: 'assistant',
-        content: "Axora Voice connected. How can I help you today?",
+        content: greeting,
       });
     } catch (err: any) {
       console.error('Browser voice session failed:', err);

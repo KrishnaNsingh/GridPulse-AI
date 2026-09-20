@@ -4,12 +4,15 @@ import { IridescentOrb } from './IridescentOrb';
 import { vapiService, type VoiceCallStatus, type VoiceMessageEvent } from '../../services/vapiService';
 import { AssistantSettingsModal } from './AssistantSettingsModal';
 import { parseInline } from './MarkdownContent';
+import { getBatteryConfig } from '../../services/api';
+import { generateBessVoiceSystemPrompt, generateBessVoiceGreeting } from './AssistantConstants';
 
 interface VoiceCallModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUserMessageRecorded?: (text: string) => void;
   onAssistantResponse?: (text: string) => void;
+  onCallEnded?: (messages: VoiceMessageEvent[]) => void;
   handleBackendChat?: (msg: string) => Promise<string>;
 }
 
@@ -18,6 +21,7 @@ export function VoiceCallModal({
   onClose,
   onUserMessageRecorded,
   onAssistantResponse,
+  onCallEnded,
   handleBackendChat,
 }: VoiceCallModalProps) {
   const [status, setStatus] = useState<VoiceCallStatus>('idle');
@@ -28,6 +32,11 @@ export function VoiceCallModal({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isVapiConfigured, setIsVapiConfigured] = useState(false);
   const transcriptBottomRef = useRef<HTMLDivElement>(null);
+  const transcriptHistoryRef = useRef<VoiceMessageEvent[]>([]);
+
+  useEffect(() => {
+    transcriptHistoryRef.current = transcriptHistory;
+  }, [transcriptHistory]);
 
   useEffect(() => {
     const config = vapiService.getSavedConfig();
@@ -35,8 +44,10 @@ export function VoiceCallModal({
 
     const unsubStatus = vapiService.onStatus(newStatus => {
       setStatus(newStatus);
-      if (newStatus === 'ended' && isOpen) {
-        // Delay closing so user sees ended state
+      if (newStatus === 'ended') {
+        if (transcriptHistoryRef.current.length > 0) {
+          onCallEnded?.(transcriptHistoryRef.current);
+        }
       }
     });
 
@@ -45,15 +56,39 @@ export function VoiceCallModal({
     });
 
     const unsubMessage = vapiService.onMessage(msg => {
+      if (!msg.content || !msg.content.trim()) return;
+
       if (msg.isPartial) {
         setActiveSpeech(`${msg.role === 'user' ? 'You' : 'GridPulse'}: ${msg.content}`);
       } else {
         setActiveSpeech('');
-        setTranscriptHistory(prev => [...prev.slice(-8), msg]);
+        const trimmed = msg.content.trim();
+
+        setTranscriptHistory(prev => {
+          if (prev.length > 0) {
+            const last = prev[prev.length - 1];
+            if (last.role === msg.role) {
+              const lastLower = last.content.trim().toLowerCase();
+              const newLower = trimmed.toLowerCase();
+              if (lastLower === newLower || lastLower.includes(newLower)) {
+                return prev;
+              }
+              if (newLower.startsWith(lastLower) || newLower.includes(lastLower)) {
+                const updated = [...prev.slice(0, -1), { role: msg.role, content: trimmed, isPartial: false }];
+                transcriptHistoryRef.current = updated;
+                return updated;
+              }
+            }
+          }
+          const next = [...prev, { role: msg.role, content: trimmed, isPartial: false }];
+          transcriptHistoryRef.current = next;
+          return next;
+        });
+
         if (msg.role === 'user') {
-          onUserMessageRecorded?.(msg.content);
+          onUserMessageRecorded?.(trimmed);
         } else {
-          onAssistantResponse?.(msg.content);
+          onAssistantResponse?.(trimmed);
         }
       }
     });
@@ -63,18 +98,39 @@ export function VoiceCallModal({
       unsubVolume();
       unsubMessage();
     };
-  }, [isOpen]);
+  }, [isOpen, onCallEnded, onUserMessageRecorded, onAssistantResponse]);
 
   useEffect(() => {
     if (isOpen && status === 'idle') {
-      vapiService.startCall({
-        onUserSpeech: async (text: string) => {
-          if (handleBackendChat) {
-            return await handleBackendChat(text);
-          }
-          return `I received your voice prompt: "${text}". GridPulse BESS optimization is running optimally with 0 constraint violations.`;
-        },
-      });
+      getBatteryConfig()
+        .then(cfg => {
+          const systemPrompt = generateBessVoiceSystemPrompt(cfg);
+          const firstMessage = generateBessVoiceGreeting(cfg);
+          vapiService.startCall({
+            systemPrompt,
+            firstMessage,
+            onUserSpeech: async (text: string) => {
+              if (handleBackendChat) {
+                return await handleBackendChat(text);
+              }
+              return `According to your website settings, your battery is "${cfg?.name || 'Demo BESS'}" with ${cfg?.capacity_mwh || 10} MWh capacity and ${cfg?.power_mw || 3.71} MW power rating.`;
+            },
+          });
+        })
+        .catch(() => {
+          const systemPrompt = generateBessVoiceSystemPrompt();
+          const firstMessage = generateBessVoiceGreeting();
+          vapiService.startCall({
+            systemPrompt,
+            firstMessage,
+            onUserSpeech: async (text: string) => {
+              if (handleBackendChat) {
+                return await handleBackendChat(text);
+              }
+              return `GridPulse BESS optimization is running optimally.`;
+            },
+          });
+        });
     }
   }, [isOpen, status, handleBackendChat]);
 
@@ -82,10 +138,21 @@ export function VoiceCallModal({
     transcriptBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcriptHistory, activeSpeech]);
 
+  useEffect(() => {
+    return () => {
+      if (transcriptHistoryRef.current.length > 0) {
+        onCallEnded?.(transcriptHistoryRef.current);
+      }
+    };
+  }, [onCallEnded]);
+
   if (!isOpen) return null;
 
   const handleEndCall = () => {
     vapiService.stopCall();
+    if (transcriptHistoryRef.current.length > 0) {
+      onCallEnded?.(transcriptHistoryRef.current);
+    }
     onClose();
   };
 
