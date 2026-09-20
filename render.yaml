@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: gridpulse-backend
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && python init_db.py"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: APP_ENV
+        value: "production"
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: VAPI_PUBLIC_KEY
+        value: "e4cb69e3-7758-48f3-9dd3-33711ae13501"
+      - key: VAPI_ASSISTANT_ID
+        sync: false

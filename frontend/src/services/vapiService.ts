@@ -56,7 +56,8 @@ class VapiVoiceManager {
 
   public async syncBackendConfig(): Promise<VapiConfig> {
     try {
-      const res = await fetch('/api/assistant/config');
+      const apiBase = (import.meta.env.VITE_API_URL as string)?.replace(/\/$/, '') || '';
+      const res = await fetch(`${apiBase}/api/assistant/config`);
       if (res.ok) {
         const data = await res.json();
         if (data.vapi_public_key && !localStorage.getItem('vapi_public_key')) {
