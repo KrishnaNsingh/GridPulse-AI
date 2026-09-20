@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { getBatteryConfig, saveBatteryConfig } from '../services/api';
 import type { BatteryConfig } from '../types';
 import { Save, RefreshCw, Info } from 'lucide-react';
+import { KineticTextLoader } from '@/components/ui/kinetic-text-loader';
+import { Preloader } from '@/components/Preloader';
 
 const DEFAULT: BatteryConfig = {
   name: 'My BESS', capacity_mwh: 10, power_mw: 2.5,
@@ -27,6 +29,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [previewPreloader, setPreviewPreloader] = useState(false);
 
   useEffect(() => {
     getBatteryConfig().then(c => { setConfig(c); setLoading(false); }).catch(() => setLoading(false));
@@ -73,7 +76,7 @@ export default function SettingsPage() {
           </div>
           <button className="btn-primary" onClick={save} disabled={saving} id="save-config-btn">
             {saving ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> :
-             saved ? '✓ Saved' : <><Save size={14} /> Save Config</>}
+              saved ? '✓ Saved' : <><Save size={14} /> Save Config</>}
           </button>
         </div>
       </div>
@@ -147,15 +150,44 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* GROQ Key reminder */}
-      <div className="card" style={{ marginTop: 20, background: 'rgba(245,158,11,0.05)', borderColor: 'rgba(245,158,11,0.2)' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', marginBottom: 8 }}>AI Assistant Configuration</div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-          To enable the Groq-powered AI assistant, set <code style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 4px', borderRadius: 3, color: '#f59e0b' }}>GROQ_API_KEY</code> in <code style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 4px', borderRadius: 3 }}>backend/.env</code>.
-          The model uses <code style={{ background: 'rgba(0,0,0,0.3)', padding: '1px 4px', borderRadius: 3 }}>llama-3.1-8b-instant</code> by default.
-          Without the key, the assistant operates in rule-based fallback mode.
+      {/* Kinetic Loader & Preloader Showcase */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Kinetic Text Loader & Preloader</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Physics-driven letter and dot animation with telemetry initialization</div>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setPreviewPreloader(true)}
+            id="preview-preloader-btn"
+            style={{ fontSize: 12, padding: '8px 16px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+          >
+            <RefreshCw size={13} />
+            Preview Fullscreen Preloader
+          </button>
+        </div>
+
+        <div
+          style={{
+            padding: '36px 16px',
+            borderRadius: 8,
+            backgroundColor: 'rgba(7, 11, 20, 0.75)',
+            border: '1px solid var(--border-subtle)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 180,
+          }}
+        >
+          <KineticTextLoader text="Loading" />
         </div>
       </div>
+
+      {/* Fullscreen Preloader Preview */}
+      <Preloader isLoading={previewPreloader} onComplete={() => setPreviewPreloader(false)} />
     </div>
   );
 }

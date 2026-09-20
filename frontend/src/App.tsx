@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DataFieldBackground } from './components/DataFieldBackground';
 import { SpotlightNavbar } from './components/SpotlightNavbar';
+import { Preloader } from './components/Preloader';
 import LandingPage from './pages/Landing';
 import DashboardPage from './pages/Dashboard';
 import OptimizerPage from './pages/Optimizer';
@@ -12,8 +14,11 @@ import AssistantPage from './pages/Assistant';
 import SettingsPage from './pages/Settings';
 
 export default function App() {
+  const [showPreloader, setShowPreloader] = useState(true);
+
   return (
     <BrowserRouter>
+      <Preloader isLoading={showPreloader} onComplete={() => setShowPreloader(false)} />
       <DataFieldBackground />
       <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
         <SpotlightNavbar />
