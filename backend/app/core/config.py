@@ -5,7 +5,7 @@ import os
 
 class Settings(BaseSettings):
     # App
-    app_name: str = "GridPilot AI"
+    app_name: str = "GridPulse AI"
     app_env: str = "development"
     log_level: str = "INFO"
 

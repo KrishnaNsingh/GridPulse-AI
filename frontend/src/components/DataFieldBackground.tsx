@@ -2,20 +2,8 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 /**
- * StructureFlowCollection — Data Field (`data-field`)
- * 
- * Replicates the Three.js flowing silk/water wave field from Vertex 9 Global Data
- * (runtime Three.js r128–r160, SHA-256 40eb5bac81e3).
- *
- * Exact specifications:
- * - Camera: PerspectiveCamera(55, aspect, 0.1, 100), position (0, -2, 9)
- * - Group rotation: rotation.x = PI / 3, rotation.z = -PI / 8
- * - Lines: 60 lines, 100 points per line, spacing x: 0.22, y: 0.2
- * - Palette: Warm neutrals lerped from #D1C5B4 to #7A7B76, additive blending
- * - Motion: Smooth dual-harmonic wave: sin(y*1.2 + time + x*0.8)*0.8 + cos(x*1.5 - time*0.8 + y*0.5)*0.6
- * - Lighting: Inner depth shadow vignette (inset 0 0 120px rgba(14, 16, 15, 0.9))
- * - Texture: 45deg subtle diagonal grain (repeating-linear-gradient rgba(200,185,160,0.05))
- * - Background ground: #0E100F / #121413 ambient dark canvas
+ * GridPulse AI Ambient Telemetry Background
+ * Subtle WebGL harmonic wave field visualizing grid data flow.
  */
 
 export interface DataFieldProps {

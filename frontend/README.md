@@ -1,32 +1,18 @@
-# React + TypeScript + Vite
+# GridPulse AI — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+An enterprise Battery Energy Storage System (BESS) dispatch, digital twin, and economic arbitrage platform. Developed for the MaVionix Optimization Challenge (Problem 07).
 
-Currently, two official plugins are available:
+## Architecture
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* **Framework:** React 19 + TypeScript + Vite
+* **Routing:** React Router v7
+* **Charts & Telemetry:** Recharts (responsive SVG rendering for SoC trajectories, hourly price spreads, and dispatch profits)
+* **Design System:** Custom dark industrial engineering theme (Inter, JetBrains Mono, Tailwind CSS v4)
+* **Optimization Backend:** Communicates with FastAPI backend powering MILP (PuLP + HiGHS), LightGBM quantile forecasting, and receding-horizon Model Predictive Control (MPC).
 
-## React Compiler
+## Available Scripts
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+* `npm run dev`: Launch local development server
+* `npm run build`: Type-check and build production bundle
+* `npm run preview`: Preview production build locally
+* `npm run lint`: Run Oxlint static analysis

@@ -55,7 +55,15 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 export function useAssistant() {
   const context = useContext(AssistantContext);
   if (!context) {
-    throw new Error('useAssistant must be used within an AssistantProvider');
+    return {
+      isOpen: false,
+      mode: 'compact' as AssistantMode,
+      openAssistant: () => {},
+      closeAssistant: () => {},
+      toggleAssistant: () => {},
+      toggleMode: () => {},
+      setMode: () => {},
+    };
   }
   return context;
 }

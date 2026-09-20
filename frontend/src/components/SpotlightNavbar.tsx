@@ -132,7 +132,7 @@ export function SpotlightNavbar() {
           <Zap size={16} color="white" />
         </div>
         <span style={{ fontSize: 15, fontWeight: 700, color: '#f0f4ff', letterSpacing: '-0.02em' }}>
-          GridPilot <span style={{ color: '#3b82f6' }}>AI</span>
+          GridPulse <span style={{ color: '#3b82f6' }}>AI</span>
         </span>
       </button>
 

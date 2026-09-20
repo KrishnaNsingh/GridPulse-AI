@@ -1,5 +1,5 @@
 """
-GridPilot AI — FastAPI Application Entry Point
+GridPulse AI — FastAPI Application Entry Point
 """
 import logging
 from fastapi import FastAPI
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # ─── Application ──────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="GridPilot AI",
+    title="GridPulse AI",
     description="Degradation-Aware Intelligent Battery Arbitrage & Closed-Loop Control",
     version="1.0.0",
     docs_url="/docs",
@@ -33,9 +33,9 @@ app.add_middleware(
 # ─── Startup ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
-    logger.info("Initializing GridPilot AI database...")
+    logger.info("Initializing GridPulse AI database...")
     init_db()
-    logger.info(f"GridPilot AI started — {settings.app_name}")
+    logger.info(f"GridPulse AI started — {settings.app_name}")
 
 
 # ─── Health ───────────────────────────────────────────────────────────────────

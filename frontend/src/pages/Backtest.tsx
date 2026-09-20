@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell
+  AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { Play, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { KPI } from '../components/KPI';
@@ -85,7 +85,7 @@ export default function BacktestPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 className="page-title">Strategy Backtest</h1>
-            <p className="page-subtitle">Greedy Arbitrage vs GridPilot MPC · Real computed metrics · No fabricated results</p>
+            <p className="page-subtitle">Empirical Benchmark: Greedy Arbitrage vs GridPulse MPC · Degradation-Penalized Evaluation</p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <select className="input" style={{ width: 'auto' }} value={horizonHours} onChange={e => setHorizonHours(+e.target.value)}>
@@ -108,7 +108,7 @@ export default function BacktestPage() {
         <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>⚡</div>
           <div style={{ fontSize: 14, marginBottom: 8 }}>Select a horizon and click Run Backtest</div>
-          <div style={{ fontSize: 12 }}>Compares Greedy (percentile-based) vs GridPilot MPC (MILP) on actual price data</div>
+          <div style={{ fontSize: 12 }}>Compares Greedy (percentile-based) vs GridPulse MPC (MILP) on actual price data</div>
         </div>
       )}
 
@@ -137,7 +137,7 @@ export default function BacktestPage() {
               {comp?.mpc_wins ? <TrendingUp size={20} color="#10b981" /> : <TrendingDown size={20} color="#ef4444" />}
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16, color: comp?.mpc_wins ? '#10b981' : '#ef4444' }}>
-                  {comp?.mpc_wins ? 'GridPilot MPC Wins' : 'Greedy Outperforms MPC'}
+                  {comp?.mpc_wins ? 'GridPulse MPC Wins' : 'Greedy Outperforms MPC'}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                   {result.horizon_hours}h backtest · {result.price_type} prices
@@ -146,9 +146,9 @@ export default function BacktestPage() {
             </div>
             <div style={{ display: 'flex', gap: 20, fontSize: 13, color: 'var(--text-secondary)' }}>
               <span>Profit Δ: <strong style={{ color: comp?.mpc_wins ? '#10b981' : '#ef4444' }}>
-                {comp?.profit_improvement >= 0 ? '+' : ''}{comp?.profit_improvement?.toFixed(2)}$ ({comp?.profit_improvement_pct?.toFixed(1)}%)
+                {(comp?.profit_improvement ?? 0) >= 0 ? '+' : ''}{comp?.profit_improvement?.toFixed(2)}$ ({comp?.profit_improvement_pct?.toFixed(1)}%)
               </strong></span>
-              <span>Degradation savings: <strong style={{ color: comp?.degradation_savings >= 0 ? '#10b981' : '#ef4444' }}>
+              <span>Degradation savings: <strong style={{ color: (comp?.degradation_savings ?? 0) >= 0 ? '#10b981' : '#ef4444' }}>
                 ${comp?.degradation_savings?.toFixed(2)}
               </strong></span>
               <span>Cycle reduction: <strong>{comp?.cycle_reduction?.toFixed(2)}</strong></span>
@@ -172,7 +172,7 @@ export default function BacktestPage() {
             {/* MPC */}
             <div className="card">
               <div style={{ fontSize: 12, fontWeight: 600, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-                ⚡ GridPilot MPC
+                ⚡ GridPulse MPC
               </div>
               <div className="kpi-grid">
                 <KPI label="Net Profit" value={m?.net_profit || 0} unit="$" color="var(--accent-green)" />
@@ -191,7 +191,7 @@ export default function BacktestPage() {
                 <span style={{ width: 10, height: 10, background: '#6b7280', borderRadius: 2, display: 'inline-block' }} /> Greedy
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-muted)' }}>
-                <span style={{ width: 10, height: 10, background: '#10b981', borderRadius: 2, display: 'inline-block' }} /> GridPilot MPC
+                <span style={{ width: 10, height: 10, background: '#10b981', borderRadius: 2, display: 'inline-block' }} /> GridPulse MPC
               </span>
             </div>
             <div style={{ height: 200 }}>

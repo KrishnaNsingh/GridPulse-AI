@@ -1,5 +1,5 @@
 """
-GridPilot AI — Database Initialization & Sample Data Seeding
+GridPulse AI — Database Initialization & Sample Data Seeding
 
 Run this script once before starting the application:
     python init_db.py
@@ -99,7 +99,7 @@ def run_demo_optimization(db):
 
 def main():
     print("=" * 60)
-    print("GridPilot AI — Database Initialization")
+    print("GridPulse AI — Database Initialization")
     print("=" * 60)
 
     print("\n[1/4] Creating database tables...")
@@ -121,7 +121,7 @@ def main():
         db.close()
 
     print("\n" + "=" * 60)
-    print("GridPilot AI initialized successfully!")
+    print("GridPulse AI initialized successfully!")
     print("=" * 60)
     print("\nTo start the backend:")
     print("  cd backend")

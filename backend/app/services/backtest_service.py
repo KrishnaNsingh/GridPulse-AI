@@ -1,7 +1,7 @@
 """
-Backtest service — compares Greedy arbitrage vs GridPilot MPC.
+Backtest service — compares Greedy arbitrage vs GridPulse MPC.
 
-Both strategies execute using actual calculated metrics, not fabricated numbers.
+Both strategies execute on historical price data with identical battery models.
 """
 import json
 import logging
@@ -26,7 +26,7 @@ def run_backtest(
     scenario: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Run backtest comparing Greedy vs GridPilot MPC strategies.
+    Run backtest comparing Greedy vs GridPulse MPC strategies.
 
     Both run on the same historical price data for fair comparison.
     """
@@ -65,8 +65,8 @@ def run_backtest(
         greedy_steps = run_greedy_dispatch(prices, timestamps, battery, dt_hours=1.0)
         greedy_metrics = _compute_metrics(greedy_steps, battery)
 
-        # ── Run GridPilot MPC ─────────────────────────────────────────────────
-        logger.info("Running GridPilot MPC...")
+        # ── Run GridPulse MPC ─────────────────────────────────────────────────
+        logger.info("Running GridPulse MPC...")
         mpc_steps = _run_mpc_backtest(prices, timestamps, battery)
         mpc_metrics = _compute_metrics(mpc_steps, battery)
 

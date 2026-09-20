@@ -6,7 +6,7 @@ const FEATURES = [
   { icon: <Cpu size={20} />, title: 'MILP Optimization', desc: 'PuLP + HiGHS solver. Globally optimal dispatch over the planning horizon with degradation penalties.', color: '#3b82f6' },
   { icon: <TrendingUp size={20} />, title: 'LightGBM Forecast', desc: 'P10/P50/P90 quantile regression on historical prices with lag features and rolling statistics.', color: '#10b981' },
   { icon: <Activity size={20} />, title: 'MPC Closed-Loop', desc: 'Receding horizon controller. Re-optimizes at each timestep from actual state, incorporating new information.', color: '#f59e0b' },
-  { icon: <Shield size={20} />, title: 'Constraint Verified', desc: 'Post-solve validation: SoC bounds, power limits, anti-simultaneity, terminal SoC. Zero fabricated results.', color: '#8b5cf6' },
+  { icon: <Shield size={20} />, title: 'Constraint Verified', desc: 'Post-solve validation: SoC bounds, power limits, anti-simultaneity, terminal SoC, and physical asset limits.', color: '#8b5cf6' },
   { icon: <Bot size={20} />, title: 'Groq AI Explainer', desc: 'LLM receives real optimization context and explains dispatch decisions. Never overrides the solver.', color: '#06b6d4' },
   { icon: <Zap size={20} />, title: 'Degradation Model', desc: 'Piecewise tiered DoD model (1× to 8× penalty) discourages deep cycling without explicit battery rules.', color: '#f97316' },
 ];
@@ -35,7 +35,7 @@ export default function LandingPage() {
           </div>
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#f0f4ff', letterSpacing: '-0.03em', lineHeight: 1 }}>
-              GridPilot <span style={{ color: '#3b82f6' }}>AI</span>
+              GridPulse <span style={{ color: '#3b82f6' }}>AI</span>
             </div>
             <div style={{ fontSize: 12, color: '#4a5a7a', marginTop: 3 }}>MaVionix Optimization Challenge · Problem 07</div>
           </div>
@@ -56,9 +56,9 @@ export default function LandingPage() {
         </h1>
 
         <p style={{ fontSize: 16, color: '#8b9bbf', lineHeight: 1.7, margin: '0 0 32px' }}>
-          A production-quality BESS control platform. MILP optimization determines dispatch.
+          An enterprise BESS control platform. MILP optimization determines dispatch.
           LightGBM forecasts prices. MPC closes the loop. Groq explains decisions.
-          <strong style={{ color: '#f0f4ff' }}> Zero fabricated metrics.</strong>
+          <strong style={{ color: '#f0f4ff' }}> Deterministic mathematical dispatch.</strong>
         </p>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>

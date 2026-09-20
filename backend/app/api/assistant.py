@@ -1,6 +1,6 @@
 """AI Assistant API endpoints — Groq-powered explanation service."""
 import json
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
@@ -34,9 +34,13 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, db: Session = Depends(get_db)):
+async def chat(
+    request: ChatRequest,
+    db: Session = Depends(get_db),
+    x_groq_api_key: Optional[str] = Header(default=None),
+):
     """
-    Ask GridPilot AI to explain optimization decisions.
+    Ask GridPulse AI to explain optimization decisions.
 
     The AI receives actual optimization context and explains the results.
     It NEVER makes or changes dispatch decisions.
@@ -55,6 +59,7 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
             user_message=request.message,
             context=context,
             conversation_history=history,
+            client_api_key=x_groq_api_key,
         )
 
         context_summary = (

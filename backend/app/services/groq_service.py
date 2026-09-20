@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 def _build_system_prompt() -> str:
-    return """You are GridPilot AI, an expert battery energy storage system (BESS) analyst and engineer.
+    return """You are GridPulse AI, an expert battery energy storage system (BESS) analyst and engineer.
 
-Your role is to EXPLAIN optimization decisions made by the GridPilot MILP optimization engine. 
+Your role is to EXPLAIN optimization decisions made by the GridPulse MILP optimization engine. 
 You never make or change dispatch decisions — you only explain them.
 
 You speak precisely, using engineering terminology but remaining accessible.
@@ -39,7 +39,7 @@ Never:
 
 def _build_context_message(context: Dict[str, Any]) -> str:
     """Build a structured context message from optimization results."""
-    lines = ["=== GridPilot Optimization Context ===\n"]
+    lines = ["=== GridPulse Optimization Context ===\n"]
 
     if "battery_config" in context and context["battery_config"]:
         cfg = context["battery_config"]
@@ -98,6 +98,7 @@ async def get_ai_explanation(
     user_message: str,
     context: Dict[str, Any],
     conversation_history: Optional[list] = None,
+    client_api_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Get an AI explanation from Groq.
@@ -106,11 +107,14 @@ async def get_ai_explanation(
         user_message: The user's question
         context: Structured optimization context
         conversation_history: Previous messages in this conversation
+        client_api_key: Optional custom Groq API key from frontend client settings
 
     Returns:
         dict with 'response', 'model', 'used_groq' (bool), 'fallback_reason' (if not Groq)
     """
-    if not settings.groq_api_key:
+    effective_api_key = (client_api_key or "").strip() or settings.groq_api_key
+
+    if not effective_api_key:
         fallback = _rule_based_explanation(user_message, context)
         return {
             "response": fallback,
@@ -122,7 +126,7 @@ async def get_ai_explanation(
     try:
         from groq import Groq
 
-        client = Groq(api_key=settings.groq_api_key)
+        client = Groq(api_key=effective_api_key)
 
         context_str = _build_context_message(context)
         messages = [
@@ -233,7 +237,7 @@ def _rule_based_explanation(user_message: str, context: Dict[str, Any]) -> str:
     elif "degradation" in msg_lower:
         return (
             f"Battery degradation cost is ${deg_cost:.2f} for this optimization window. "
-            f"The GridPilot degradation model uses a piecewise increasing cost based on depth-of-discharge (DoD): "
+            f"The GridPulse degradation model uses a piecewise increasing cost based on depth-of-discharge (DoD): "
             f"shallow cycles (0-40% DoD) incur 1x base cost, while deep cycles (>90% DoD) incur 8x base cost. "
             f"This discourages the optimizer from cycling aggressively for small price spreads. "
             f"Net profit after degradation: ${net_profit:.2f}."
@@ -270,7 +274,7 @@ def _rule_based_explanation(user_message: str, context: Dict[str, Any]) -> str:
 
     else:
         return (
-            f"GridPilot AI is ready to explain optimization decisions. "
+            f"GridPulse AI is ready to explain optimization decisions. "
             f"Current battery status: SoC={soc:.0%}, action={action.upper()}, "
             f"price=${current_step_price:.1f}/MWh. "
             f"24h optimization net profit: ${net_profit:.2f}. "
