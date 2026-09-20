@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { DataFieldBackground } from './components/DataFieldBackground';
 import { SpotlightNavbar } from './components/SpotlightNavbar';
 import { Preloader } from './components/Preloader';
@@ -12,12 +12,27 @@ import BacktestPage from './pages/Backtest';
 import AnalyticsPage from './pages/Analytics';
 import AssistantPage from './pages/Assistant';
 import SettingsPage from './pages/Settings';
+import { AssistantProvider, useAssistant } from './context/AssistantContext';
 
-export default function App() {
+function AssistantUrlSync() {
+  const location = useLocation();
+  const { openAssistant } = useAssistant();
+
+  useEffect(() => {
+    if (location.pathname === '/assistant') {
+      openAssistant('fullscreen');
+    }
+  }, [location.pathname]);
+
+  return null;
+}
+
+function AppContent() {
   const [showPreloader, setShowPreloader] = useState(true);
 
   return (
     <BrowserRouter>
+      <AssistantUrlSync />
       <Preloader isLoading={showPreloader} onComplete={() => setShowPreloader(false)} />
       <DataFieldBackground />
       <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
@@ -30,11 +45,22 @@ export default function App() {
           <Route path="/simulator" element={<SimulatorPage />} />
           <Route path="/backtest" element={<BacktestPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/assistant" element={<AssistantPage />} />
+          <Route path="/assistant" element={<DashboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+
+        {/* Global Assistant Widget (Compact Side Panel & Fullscreen Expansive Mode) */}
+        <AssistantPage />
       </div>
     </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <AssistantProvider>
+      <AppContent />
+    </AssistantProvider>
   );
 }

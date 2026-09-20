@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { animate } from 'framer-motion';
 import { Zap } from 'lucide-react';
+import { useAssistant } from '../context/AssistantContext';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -92,7 +93,13 @@ export function SpotlightNavbar() {
     }
   }, [currentActive]);
 
+  const { isOpen, toggleAssistant } = useAssistant();
+
   const handleClick = (item: typeof NAV_ITEMS[0], idx: number) => {
+    if (item.href === '/assistant') {
+      toggleAssistant();
+      return;
+    }
     setCurrentActive(idx);
     navigate(item.href);
   };
@@ -171,30 +178,34 @@ export function SpotlightNavbar() {
           height: '100%', padding: '0 6px', margin: 0,
           gap: 0, listStyle: 'none',
         }}>
-          {NAV_ITEMS.map((item, idx) => (
-            <li key={idx} style={{ height: '100%', display: 'flex', alignItems: 'center' }}>
-              <button
-                data-index={idx}
-                onClick={() => handleClick(item, idx)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 100,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  transition: 'color 0.2s',
-                  color: currentActive === idx ? '#f0f4ff' : '#6b7280',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={e => { if (currentActive !== idx) (e.target as HTMLElement).style.color = '#d1d5db'; }}
-                onMouseLeave={e => { if (currentActive !== idx) (e.target as HTMLElement).style.color = '#6b7280'; }}
-              >
-                {item.label}
-              </button>
-            </li>
-          ))}
+          {NAV_ITEMS.map((item, idx) => {
+            const isAssistant = item.href === '/assistant';
+            const isActive = isAssistant ? isOpen : currentActive === idx;
+            return (
+              <li key={idx} style={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+                <button
+                  data-index={idx}
+                  onClick={() => handleClick(item, idx)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 100,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    border: isAssistant && isOpen ? '1px solid rgba(56, 189, 248, 0.4)' : 'none',
+                    background: isAssistant && isOpen ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    color: isActive ? '#f0f4ff' : '#6b7280',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => { if (!isActive) (e.target as HTMLElement).style.color = '#d1d5db'; }}
+                  onMouseLeave={e => { if (!isActive) (e.target as HTMLElement).style.color = '#6b7280'; }}
+                >
+                  {item.label}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
