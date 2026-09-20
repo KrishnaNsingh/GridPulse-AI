@@ -49,8 +49,14 @@ class VapiVoiceManager {
   public getSavedConfig(): VapiConfig {
     if (typeof window === 'undefined') return {};
     return {
-      publicKey: localStorage.getItem('vapi_public_key') || '',
-      assistantId: localStorage.getItem('vapi_assistant_id') || '',
+      publicKey:
+        localStorage.getItem('vapi_public_key') ||
+        (import.meta as any).env?.VITE_VAPI_PUBLIC_KEY ||
+        '',
+      assistantId:
+        localStorage.getItem('vapi_assistant_id') ||
+        (import.meta as any).env?.VITE_VAPI_ASSISTANT_ID ||
+        '',
     };
   }
 
@@ -178,19 +184,19 @@ class VapiVoiceManager {
               provider: 'openai',
               model: 'gpt-4o-mini',
               messages: [
-                {
-                  role: 'system',
-                  content: options?.systemPrompt ||
-                    "You are Axora & GridPulse AI, an intelligent, helpful voice assistant specializing in analytics, grid energy arbitrage, and creative tasks. Keep answers concise, natural, and conversational.",
-                },
-              ],
-            },
-            voice: {
-              provider: '11labs',
-              voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel
-            },
-            name: 'Axora Voice Assistant',
-          });
+              {
+                role: 'system',
+                content: options?.systemPrompt ||
+                  "You are GridPulse Voice Dispatch, an intelligent energy storage and battery arbitrage voice copilot. Provide concise, engineering-accurate answers regarding BESS operations, price forecasts, and dispatch constraints.",
+              },
+            ],
+          },
+          voice: {
+            provider: '11labs',
+            voiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel
+          },
+          name: 'GridPulse Voice Dispatch',
+        });
         }
         return;
       } catch (err) {

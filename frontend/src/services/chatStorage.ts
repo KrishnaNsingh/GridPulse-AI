@@ -5,7 +5,7 @@ export interface StoredMessage {
   timestamp: number;
   model?: string;
   used_groq?: boolean;
-  toolType?: 'image' | 'web_search' | 'analytics' | 'dispatch' | 'file';
+  toolType?: 'telemetry' | 'analytics' | 'dispatch' | 'file';
   toolData?: any;
 }
 
@@ -18,139 +18,73 @@ export interface ChatSession {
   model: string;
 }
 
-const STORAGE_KEY = 'axora_chat_sessions_v1';
-const ACTIVE_SESSION_KEY = 'axora_active_session_id';
+const STORAGE_KEY = 'gridpulse_chat_sessions_v2';
+const ACTIVE_SESSION_KEY = 'gridpulse_active_session_id';
 
 const SEED_SESSIONS: ChatSession[] = [
   {
     id: 'seed-1',
-    title: "What's one lesson life has taught you r...",
+    title: 'Peak discharge hour 19 rationale',
     createdAt: Date.now() - 1000 * 60 * 60 * 2,
     updatedAt: Date.now() - 1000 * 60 * 60 * 2,
-    model: 'AI Assistant',
+    model: 'GridPulse Copilot',
     messages: [
       {
         id: 'm1',
         role: 'user',
-        content: "What's one lesson life has taught you recently about patience and decision making?",
+        content: 'Why did the optimizer schedule discharge at hour 19 instead of holding charge for hour 21?',
         timestamp: Date.now() - 1000 * 60 * 60 * 2,
       },
       {
         id: 'm2',
         role: 'assistant',
-        content: "That the most enduring progress happens during the quiet intervals between decisions. Whether managing energy arbitrage cycles or long-term growth, waiting for optimal market conditions yields far greater dividends than reactive impulses.",
+        content: 'At hour 19, forecasted locational marginal pricing reaches $88.50/MWh with high confidence (P90: $94.20). While hour 21 is also elevated, holding state-of-charge across both hours would constrain the terminal 50% SoC boundary without yielding higher net margin once the 4× depth-of-discharge degradation penalty tier is factored in.',
         timestamp: Date.now() - 1000 * 60 * 60 * 2 + 1000,
-        model: 'Axora 4.5',
+        model: 'GridPulse Copilot',
       },
     ],
   },
   {
     id: 'seed-2',
-    title: "What's one mistake that taught you a val...",
+    title: 'Degradation penalty tradeoff',
     createdAt: Date.now() - 1000 * 60 * 60 * 18,
     updatedAt: Date.now() - 1000 * 60 * 60 * 18,
-    model: 'AI Assistant',
+    model: 'GridPulse Copilot',
     messages: [
       {
         id: 'm3',
         role: 'user',
-        content: "What's one mistake that taught you a valuable operational lesson?",
+        content: 'What is the net economic benefit of cycling the battery twice in 24 hours versus a single cycle?',
         timestamp: Date.now() - 1000 * 60 * 60 * 18,
       },
       {
         id: 'm4',
         role: 'assistant',
-        content: "Underestimating degradation penalties during price spikes. In battery storage, aggressive dispatch without degradation awareness deteriorates lifetime NPV faster than gross arbitrage revenues can compensate.",
+        content: 'The dual-cycle dispatch captures an additional $142.30 in gross price spreads during the morning and evening peaks. After subtracting piecewise degradation costs ($38.50) and round-trip efficiency losses (90.25% RTE), net operating profit improves by $89.60 while keeping maximum cycle depth strictly below the 80% DoD penalty cliff.',
         timestamp: Date.now() - 1000 * 60 * 60 * 18 + 1000,
-        model: 'GridPulse MILP',
+        model: 'GridPulse Copilot',
       },
     ],
   },
   {
     id: 'seed-3',
-    title: "What's one goal that excites you the mos...",
+    title: 'Constraint audit & ramp limits',
     createdAt: Date.now() - 1000 * 60 * 60 * 22,
     updatedAt: Date.now() - 1000 * 60 * 60 * 22,
-    model: 'AI Assistant',
+    model: 'GridPulse Copilot',
     messages: [
       {
         id: 'm5',
         role: 'user',
-        content: "What's one goal that excites you the most in grid intelligence?",
+        content: 'Verify that all inverter power limits and SoC safety buffers were respected in the 48-hour run.',
         timestamp: Date.now() - 1000 * 60 * 60 * 22,
       },
       {
         id: 'm6',
         role: 'assistant',
-        content: "Achieving autonomous zero-violation microgrid stabilization with sub-second closed-loop dispatch and 100% renewable integration.",
+        content: 'All 48 timesteps satisfy physical constraints: maximum charge and discharge rates remained at or below 2.50 MW, anti-simultaneity binaries ensured zero overlapping power flows, and state-of-charge remained bounded within 10% min and 90% max safety buffers.',
         timestamp: Date.now() - 1000 * 60 * 60 * 22 + 1000,
-        model: 'Axora 4.5',
-      },
-    ],
-  },
-  {
-    id: 'seed-4',
-    title: "If animals could talk, which one would be...",
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 10,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 24 * 10,
-    model: 'AI Assistant',
-    messages: [
-      {
-        id: 'm7',
-        role: 'user',
-        content: "If animals could talk, which one would be the wisest?",
-        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 10,
-      },
-      {
-        id: 'm8',
-        role: 'assistant',
-        content: "The blue whale. Navigating thousands of miles across oceanic soundscapes, witnessing centuries of planetary tides with infrasonic song.",
-        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 10 + 1000,
-        model: 'Axora 4.5',
-      },
-    ],
-  },
-  {
-    id: 'seed-5',
-    title: "What's one word to describe your day?",
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 10 - 3600,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 24 * 10 - 3600,
-    model: 'AI Assistant',
-    messages: [
-      {
-        id: 'm9',
-        role: 'user',
-        content: "What's one word to describe your day?",
-        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 10 - 3600,
-      },
-      {
-        id: 'm10',
-        role: 'assistant',
-        content: "Harmonious.",
-        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 10 - 3500,
-        model: 'Axora 4.5',
-      },
-    ],
-  },
-  {
-    id: 'seed-6',
-    title: "What's one habit you want to break?",
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 10 - 7200,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 24 * 10 - 7200,
-    model: 'AI Assistant',
-    messages: [
-      {
-        id: 'm11',
-        role: 'user',
-        content: "What's one habit you want to break?",
-        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 10 - 7200,
-      },
-      {
-        id: 'm12',
-        role: 'assistant',
-        content: "Constant multitasking. True creative and analytical breakthroughs emerge from sustained deep focus.",
-        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 10 - 7100,
-        model: 'Axora 4.5',
+        model: 'GridPulse Copilot',
       },
     ],
   },
@@ -190,10 +124,10 @@ export function setActiveSessionId(id: string | null) {
   }
 }
 
-export function createNewSession(firstMessage?: string, model: string = 'AI Assistant'): ChatSession {
+export function createNewSession(firstMessage?: string, model: string = 'GridPulse Copilot'): ChatSession {
   const newSession: ChatSession = {
     id: 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
-    title: firstMessage ? (firstMessage.length > 32 ? firstMessage.substring(0, 32) + '...' : firstMessage) : 'New conversation',
+    title: firstMessage ? (firstMessage.length > 32 ? firstMessage.substring(0, 32) + '...' : firstMessage) : 'New dispatch analysis',
     createdAt: Date.now(),
     updatedAt: Date.now(),
     model,
@@ -225,7 +159,6 @@ export function groupSessionsByDate(sessions: ChatSession[]) {
     Today: [],
     Yesterday: [],
     'Previous 7 Days': [],
-    '10 days ago': [],
     Older: [],
   };
 
@@ -237,8 +170,6 @@ export function groupSessionsByDate(sessions: ChatSession[]) {
       groups.Yesterday.push(session);
     } else if (diff < ONE_DAY * 7) {
       groups['Previous 7 Days'].push(session);
-    } else if (diff < ONE_DAY * 14) {
-      groups['10 days ago'].push(session);
     } else {
       groups.Older.push(session);
     }

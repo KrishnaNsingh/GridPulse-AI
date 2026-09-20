@@ -65,7 +65,7 @@ export function ChatMessageItem({ message, onSpeak }: ChatMessageItemProps) {
       >
         {/* Name / Model Tag */}
         <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>{isUser ? 'You' : (message.model || 'Axora AI')}</span>
+          <span>{isUser ? 'You' : (message.model || 'GridPulse Copilot')}</span>
           {!isUser && message.used_groq && (
             <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: 3 }}>
               <Zap size={10} /> Groq Llama-3
@@ -90,50 +90,7 @@ export function ChatMessageItem({ message, onSpeak }: ChatMessageItemProps) {
         >
           {message.content}
 
-          {/* Special Tool Visualizations */}
-          {message.toolType === 'image' && message.toolData && (
-            <div
-              style={{
-                marginTop: 14,
-                borderRadius: 12,
-                overflow: 'hidden',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                background: '#090d16',
-              }}
-            >
-              <div
-                style={{
-                  height: 220,
-                  width: '100%',
-                  background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #0f172a 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'relative',
-                }}
-              >
-                {/* Visual holographic effect */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(168,85,247,0.3) 0%, transparent 60%)',
-                  }}
-                />
-                <div style={{ textAlign: 'center', zIndex: 1, padding: 16 }}>
-                  <Sparkles size={32} color="#c084fc" style={{ margin: '0 auto 10px' }} />
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#f8fafc' }}>
-                    {message.toolData.prompt || 'Generated Concept Art'}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    4K High Dynamic Range · Photorealistic Neural Render
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {message.toolType === 'web_search' && message.toolData && (
+          {message.toolType === 'telemetry' && message.toolData && (
             <div
               style={{
                 marginTop: 12,
@@ -147,10 +104,10 @@ export function ChatMessageItem({ message, onSpeak }: ChatMessageItemProps) {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#38bdf8' }}>
-                <Globe size={14} /> Live Web Sources Cited
+                <Zap size={14} /> Live Grid Telemetry Synced
               </div>
               <div style={{ fontSize: 12, color: '#cbd5e1' }}>
-                {message.toolData.summary || 'Queried current global energy markets & real-time pricing indices.'}
+                {message.toolData.summary || 'Real-time telemetry and dispatch context incorporated.'}
               </div>
             </div>
           )}

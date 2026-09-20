@@ -19,6 +19,16 @@ const api = axios.create({
   timeout: 120000, // 2 min for heavy optimization calls
 });
 
+api.interceptors.request.use(config => {
+  if (typeof window !== 'undefined') {
+    const groqKey = localStorage.getItem('groq_api_key');
+    if (groqKey && groqKey.trim().length > 0) {
+      config.headers['X-Groq-Api-Key'] = groqKey.trim();
+    }
+  }
+  return config;
+});
+
 // ── Health ────────────────────────────────────────────────────────────────────
 export const getHealth = (): Promise<HealthResponse> =>
   api.get('/health').then(r => r.data);

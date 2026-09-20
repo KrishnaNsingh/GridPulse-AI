@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, PhoneOff, Settings, Volume2, Sparkles, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Settings, Sparkles } from 'lucide-react';
 import { IridescentOrb } from './IridescentOrb';
 import { vapiService, type VoiceCallStatus, type VoiceMessageEvent } from '../../services/vapiService';
 import { AssistantSettingsModal } from './AssistantSettingsModal';
@@ -45,7 +45,7 @@ export function VoiceCallModal({
 
     const unsubMessage = vapiService.onMessage(msg => {
       if (msg.isPartial) {
-        setActiveSpeech(`${msg.role === 'user' ? 'You' : 'Axora'}: ${msg.content}`);
+        setActiveSpeech(`${msg.role === 'user' ? 'You' : 'GridPulse'}: ${msg.content}`);
       } else {
         setActiveSpeech('');
         setTranscriptHistory(prev => [...prev.slice(-8), msg]);
@@ -135,7 +135,7 @@ export function VoiceCallModal({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#f8fafc' }}>
-                  Axora Real-time Voice
+                  GridPulse Voice Dispatch
                 </span>
                 <span
                   style={{
@@ -190,7 +190,7 @@ export function VoiceCallModal({
             alignItems: 'center',
             justifyContent: 'center',
             gap: 28,
-            my: 'auto',
+            margin: 'auto 0',
           }}
         >
           {/* Iridescent 3D Orb */}
