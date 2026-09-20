@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KineticTextLoader } from '@/components/ui/kinetic-text-loader';
 import { Zap, Cpu, ShieldCheck } from 'lucide-react';
@@ -42,8 +42,8 @@ export function Preloader({
   isLoading,
   onComplete,
   duration = 2200,
-  brandName = 'GRIDPILOT AI',
-  systemTag = 'ENERGY ARBITRAGE & DISPATCH OS',
+  brandName: _brandName = 'GRIDPILOT AI',
+  systemTag: _systemTag = 'ENERGY ARBITRAGE & DISPATCH OS',
   canSkip = true,
 }: PreloaderProps) {
   const [internalLoading, setInternalLoading] = useState(true);
