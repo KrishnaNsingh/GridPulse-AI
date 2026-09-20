@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     vapi_public_key: str = ""
     vapi_assistant_id: str = ""
 
+    # Vapi Real-time Voice (optional)
+    vapi_public_key: str = ""
+    vapi_assistant_id: str = ""
+    vapi_private_key: str = ""
+
+    # OpenAI (optional fallback)
+    openai_api_key: str = ""
+
     # Optimization defaults
     default_capacity_mwh: float = 10.0
     default_power_mw: float = 2.5

@@ -225,10 +225,11 @@ export default function AssistantPage() {
         setSessions(finalSessions);
         saveStoredSessions(finalSessions);
       } catch (err: any) {
+        console.error('AI chat error:', err);
         const fallbackMsg: StoredMessage = {
           id: 'msg-' + Date.now(),
           role: 'assistant',
-          content: `I analyzed your query: "${text}".\n\nIn GridPulse BESS operations, battery arbitrage optimizes charge cycles during off-peak price troughs and discharges into peak hours, strictly penalizing degradation ($5.00/MWh) to preserve cell cycle life.`,
+          content: `⚠️ Could not reach GridPulse AI server (${err?.message || 'Connection error'}). Please ensure the backend is running on http://localhost:8000.`,
           timestamp: Date.now(),
           model: selectedModel.name,
         };
@@ -1224,8 +1225,9 @@ export default function AssistantPage() {
               include_forecast: true,
             });
             return res.response;
-          } catch {
-            return `Processed voice query regarding energy dispatch and BESS operational margins.`;
+          } catch (err: any) {
+            console.error('Voice backend chat error:', err);
+            return `I could not communicate with the GridPulse AI backend service. Please check that the server is running.`;
           }
         }}
         onUserMessageRecorded={text => {

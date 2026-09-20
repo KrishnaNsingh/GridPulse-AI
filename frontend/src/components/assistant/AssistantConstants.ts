@@ -7,28 +7,22 @@ export interface ModelOption {
 
 export const AVAILABLE_MODELS: ModelOption[] = [
   {
-    id: 'axora-default',
-    name: 'AI Assistant',
-    badge: 'Multi-Modal',
-    description: 'General intelligence, creative reasoning & energy analysis',
-  },
-  {
-    id: 'gridpulse-bess',
-    name: 'GridPulse Arbitrage Agent',
-    badge: 'MILP Engine',
-    description: 'Degradation-aware dispatch and battery optimization specialist',
+    id: 'gridpulse-copilot',
+    name: 'GridPulse Copilot',
+    badge: 'MILP Grounded',
+    description: 'BESS dispatch rationale, degradation trade-offs & state verification',
   },
   {
     id: 'groq-llama3',
     name: 'Llama 3.3 70B (Groq)',
-    badge: 'Ultra Fast',
-    description: 'Sub-second natural language inference and code synthesis',
+    badge: 'High Speed',
+    description: 'Low-latency engineering analysis and technical explanation',
   },
   {
     id: 'deepseek-r1',
     name: 'DeepSeek Reasoner',
     badge: 'Chain-of-Thought',
-    description: 'Step-by-step mathematical reasoning and optimization proofs',
+    description: 'Detailed mathematical proofs and algorithmic breakdown',
   },
 ];
 
@@ -41,22 +35,22 @@ export interface FeatureCardItem {
 
 export const FEATURE_CARDS: FeatureCardItem[] = [
   {
-    id: 'smart-budget',
-    title: 'Smart Budget',
-    description: 'A budget that fits your lifestyle, not the other way around',
-    prompt: 'How can I optimize our energy expenditure budget and battery cycling to minimize lifetime costs while maximizing arbitrage revenue?',
+    id: 'dispatch-strategy',
+    title: 'Dispatch Optimization',
+    description: 'Analyze wholesale price spreads and evaluate optimal charge/discharge windows',
+    prompt: 'Explain the economic rationale behind the scheduled charging and discharging windows in the latest dispatch.',
   },
   {
-    id: 'analytics',
-    title: 'Analytics',
-    description: 'Analytics empowers individuals and businesses to make smarter',
-    prompt: 'Show me an analytical summary of the latest price spreads, dispatch efficiency, and battery state-of-health metrics.',
+    id: 'degradation-analysis',
+    title: 'Cell Health & Fade',
+    description: 'Evaluate capacity fade and cycle depth penalties versus gross market revenues',
+    prompt: 'Break down the piecewise degradation costs incurred during peak hours and verify battery lifetime preservation.',
   },
   {
-    id: 'spending',
-    title: 'Spending',
-    description: 'Spending is the way individuals and businesses use their financial',
-    prompt: 'Break down the net financial return, gross energy purchases vs discharge revenues, and cell degradation costs in the latest dispatch.',
+    id: 'constraint-audit',
+    title: 'Constraint Compliance',
+    description: 'Audit SoC boundaries, terminal state constraints, and anti-simultaneity guarantees',
+    prompt: 'Audit the latest schedule to confirm zero simultaneous charge/discharge actions and verify terminal SoC compliance.',
   },
 ];
 
@@ -72,13 +66,13 @@ export const TEMPLATES = [
     prompt: 'What is the degradation cost per MWh in this schedule and why is it worth cycling the battery at hour 18?',
   },
   {
-    title: 'Market Intelligence Report',
-    description: 'Synthesize renewable volatility and grid constraints',
-    prompt: 'Summarize current electricity market volatility, expected price spikes, and operational constraints.',
+    title: 'Market Volatility & Spikes',
+    description: 'Analyze renewable supply volatility and extreme price fluctuations',
+    prompt: 'Summarize electricity price volatility, expected price spikes, and operational constraints over the next horizon.',
   },
   {
-    title: 'Photorealistic Concept Render',
-    description: 'Generate high-fidelity architectural or technical visuals',
-    prompt: 'Generate an ultra-modern futuristic renewable energy battery storage facility with glowing blue power conduits at dusk.',
+    title: 'Reserve & Ancillary Readiness',
+    description: 'Verify state-of-charge headroom for contingency grid reserves',
+    prompt: 'Evaluate the current battery SoC profile against emergency reserve margins and terminal state requirements.',
   },
 ];

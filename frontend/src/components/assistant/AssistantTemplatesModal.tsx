@@ -1,4 +1,4 @@
-import { X, Sparkles, Zap, Shield, ArrowRight } from 'lucide-react';
+import { X, Sparkles, ArrowRight } from 'lucide-react';
 import { TEMPLATES } from './AssistantConstants';
 
 interface AssistantTemplatesModalProps {
@@ -70,7 +70,7 @@ export function AssistantTemplatesModal({
                 Prompt Templates & Workflows
               </h2>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
-                Pre-engineered prompts for energy arbitrage, battery health, and creative synthesis
+                Pre-engineered prompts for energy arbitrage, battery health, and dispatch verification
               </p>
             </div>
           </div>

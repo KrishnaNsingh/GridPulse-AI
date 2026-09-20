@@ -145,7 +145,10 @@ class VapiVoiceManager {
 
     if (apiKey && apiKey.length > 5) {
       try {
-        const { default: Vapi } = await import('@vapi-ai/web');
+        const vapiModule: any = await import('@vapi-ai/web');
+        const Vapi = typeof vapiModule.default === 'function'
+          ? vapiModule.default
+          : (typeof vapiModule.default?.default === 'function' ? vapiModule.default.default : vapiModule);
         this.vapiInstance = new Vapi(apiKey);
 
         this.vapiInstance.on('call-start', () => {

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, PhoneOff, Settings, Volume2, Sparkles, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Settings, Sparkles } from 'lucide-react';
 import { IridescentOrb } from './IridescentOrb';
 import { vapiService, type VoiceCallStatus, type VoiceMessageEvent } from '../../services/vapiService';
 import { AssistantSettingsModal } from './AssistantSettingsModal';
+import { parseInline } from './MarkdownContent';
 
 interface VoiceCallModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export function VoiceCallModal({
 
     const unsubMessage = vapiService.onMessage(msg => {
       if (msg.isPartial) {
-        setActiveSpeech(`${msg.role === 'user' ? 'You' : 'Axora'}: ${msg.content}`);
+        setActiveSpeech(`${msg.role === 'user' ? 'You' : 'GridPulse'}: ${msg.content}`);
       } else {
         setActiveSpeech('');
         setTranscriptHistory(prev => [...prev.slice(-8), msg]);
@@ -135,7 +136,7 @@ export function VoiceCallModal({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#f8fafc' }}>
-                  Axora Real-time Voice
+                  GridPulse Voice Dispatch
                 </span>
                 <span
                   style={{
@@ -283,7 +284,7 @@ export function VoiceCallModal({
                 >
                   {item.role === 'user' ? 'You:' : 'Axora:'}
                 </span>
-                <span style={{ color: '#e2e8f0' }}>{item.content}</span>
+                <span style={{ color: '#e2e8f0' }}>{parseInline(item.content)}</span>
               </div>
             ))}
 
