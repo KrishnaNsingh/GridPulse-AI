@@ -156,8 +156,8 @@ function BatteryCyberFallback({
   const socPct = Math.round(soc * 100);
   const color =
     action === 'charge' ? '#06b6d4' :
-    action === 'discharge' ? '#f97316' :
-    soc > 0.5 ? '#10b981' : soc >= 0.25 ? '#f59e0b' : '#ef4444';
+      action === 'discharge' ? '#f97316' :
+        soc > 0.5 ? '#10b981' : soc >= 0.25 ? '#f59e0b' : '#ef4444';
 
   return (
     <div
@@ -281,7 +281,7 @@ export function Battery3D({
   const socMin = config?.soc_min ?? 0.1;
   const isCritical = soc < (socMin + 0.05);
 
-  const canvasHeight = height ?? (size === 'lg' ? 320 : size === 'sm' ? 180 : 250);
+  const canvasHeight = height ?? (size === 'lg' ? 350 : size === 'sm' ? 180 : 350);
 
   return (
     <div
@@ -310,7 +310,7 @@ export function Battery3D({
           {hasWebGL ? (
             <Suspense fallback={<BatteryCyberFallback height={canvasHeight} soc={soc} action={action} />}>
               <Canvas
-                camera={{ position: [0, 0.3, 2.5], fov: 45, near: 0.1, far: 1000 }}
+                camera={{ position: [0, 0.12, 3.65], fov: 45, near: 0.1, far: 1000 }}
                 gl={{ antialias: true, alpha: true, powerPreference: 'default' }}
                 dpr={1}
                 style={{ width: '100%', height: '100%' }}
@@ -322,7 +322,7 @@ export function Battery3D({
                 <pointLight position={[0, -2, 2]} intensity={0.8} color="#10b981" />
 
                 {/* Subtle Float Animation with dampened user orbit controls */}
-                <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.4}>
+                <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.3}>
                   <BatteryModel soc={soc} action={action} topOffset={0.92} />
                 </Float>
 
