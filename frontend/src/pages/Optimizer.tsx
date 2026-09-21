@@ -6,8 +6,9 @@ import {
 import { Cpu, Play, RefreshCw, AlertTriangle, CheckCircle, Info, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { KPI } from '../components/KPI';
-import { BatteryVisualization } from '../components/BatteryVisualization';
-import { runOptimization, getBatteryConfig } from '../services/api';
+import { Battery3D } from '../components/3d/Battery3D';
+import { useBattery } from '../context/BatteryContext';
+import { runOptimization } from '../services/api';
 import type { OptimizationResult, BatteryConfig, BatteryState, DispatchStep } from '../types';
 
 const DEFAULT_BATTERY: BatteryConfig = {
@@ -67,7 +68,7 @@ function ConfigPanel({ config, onChange }: { config: BatteryConfig; onChange: (c
 }
 
 export default function OptimizerPage() {
-  const [config, setConfig] = useState<BatteryConfig>(DEFAULT_BATTERY);
+  const { config, updateConfig, batteryState: globalBatteryState, setBatteryState, refreshConfig } = useBattery();
   const [horizonHours, setHorizonHours] = useState(24);
   const [useForecast, setUseForecast] = useState(true);
   const [running, setRunning] = useState(false);
@@ -76,9 +77,20 @@ export default function OptimizerPage() {
   const [error, setError] = useState<string | null>(null);
 
   const batteryState: BatteryState = (() => {
-    if (!result?.dispatch?.length) return { soc: config.soc_initial, energy_mwh: config.soc_initial * config.capacity_mwh, action: 'idle', charge_power_mw: 0, discharge_power_mw: 0, cycle_count: 0, total_degradation_cost: 0, total_revenue: 0, total_energy_cost: 0 };
+    if (!result?.dispatch?.length) return globalBatteryState;
     const f = result.dispatch[0];
-    return { soc: f.soc_start, energy_mwh: f.soc_start * config.capacity_mwh, action: f.action, charge_power_mw: f.charge_power_mw, discharge_power_mw: f.discharge_power_mw, cycle_count: result.cycle_count || 0, total_degradation_cost: result.total_degradation_cost || 0, total_revenue: result.total_revenue || 0, total_energy_cost: result.total_energy_cost || 0 };
+    return {
+      ...globalBatteryState,
+      soc: f.soc_start,
+      energy_mwh: Number((f.soc_start * (config.capacity_mwh || 10)).toFixed(2)),
+      action: f.action,
+      charge_power_mw: f.charge_power_mw,
+      discharge_power_mw: f.discharge_power_mw,
+      cycle_count: result.cycle_count || globalBatteryState.cycle_count,
+      total_degradation_cost: result.total_degradation_cost || globalBatteryState.total_degradation_cost,
+      total_revenue: result.total_revenue || globalBatteryState.total_revenue,
+      total_energy_cost: result.total_energy_cost || globalBatteryState.total_energy_cost,
+    };
   })();
 
   const run = useCallback(async () => {
@@ -87,19 +99,35 @@ export default function OptimizerPage() {
     try {
       const r = await runOptimization({ battery_config: config, horizon_hours: horizonHours, use_forecast: useForecast });
       setResult(r);
+
+      // Sync solver dispatch back to centralized battery state
+      if (r.dispatch?.length) {
+        const f = r.dispatch[0];
+        setBatteryState(prev => ({
+          ...prev,
+          soc: f.soc_start,
+          energy_mwh: Number((f.soc_start * (config.capacity_mwh || 10)).toFixed(2)),
+          action: f.action,
+          charge_power_mw: f.charge_power_mw,
+          discharge_power_mw: f.discharge_power_mw,
+          cycle_count: r.cycle_count || prev.cycle_count,
+          total_degradation_cost: r.total_degradation_cost || prev.total_degradation_cost,
+          total_revenue: r.total_revenue || prev.total_revenue,
+          total_energy_cost: r.total_energy_cost || prev.total_energy_cost,
+        }));
+      }
     } catch (e: any) {
       setError(e?.response?.data?.detail || e?.message || 'Optimization failed');
     } finally {
       setRunning(false);
     }
-  }, [config, horizonHours, useForecast]);
+  }, [config, horizonHours, useForecast, setBatteryState]);
 
   const loadConfig = useCallback(async () => {
     try {
-      const c = await getBatteryConfig();
-      setConfig(c);
+      await refreshConfig();
     } catch {}
-  }, []);
+  }, [refreshConfig]);
 
   const dispatchData = result?.dispatch?.map(d => ({
     h: `h${d.step}`,
@@ -151,7 +179,7 @@ export default function OptimizerPage() {
           <motion.div className="card animate-fade-in" style={{ marginBottom: 16 }}
             initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, color: 'var(--text-primary)' }}>Battery Configuration</div>
-            <ConfigPanel config={config} onChange={setConfig} />
+            <ConfigPanel config={config} onChange={updateConfig} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -186,11 +214,13 @@ export default function OptimizerPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 16 }}>
-        {/* Battery */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16 }}>First Action</div>
-          <BatteryVisualization state={batteryState} config={config} size="md" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 280px) 1fr', gap: 16 }}>
+        {/* 3D Battery */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', padding: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14, width: '100%', textAlign: 'center' }}>
+            Solver First Action
+          </div>
+          <Battery3D state={batteryState} config={config} size="md" />
         </div>
 
         {/* Charts */}

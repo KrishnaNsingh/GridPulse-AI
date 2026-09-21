@@ -6,8 +6,9 @@ import {
 import { Play, Square, RefreshCw, Activity, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { KPI } from '../components/KPI';
-import { BatteryVisualization } from '../components/BatteryVisualization';
-import { runSimulation, getBatteryConfig } from '../services/api';
+import { Battery3D } from '../components/3d/Battery3D';
+import { useBattery } from '../context/BatteryContext';
+import { runSimulation } from '../services/api';
 import type { SimulationResult, BatteryConfig, BatteryState, SimulationStep } from '../types';
 
 const DEFAULT_BATTERY: BatteryConfig = {
@@ -74,17 +75,13 @@ function StepHistory({ history, visible }: { history: SimulationStep[]; visible:
 }
 
 export default function DigitalTwinPage() {
-  const [config, setConfig] = useState<BatteryConfig>(DEFAULT_BATTERY);
+  const { config, batteryState: globalBatteryState, setBatteryState } = useBattery();
   const [horizonHours, setHorizonHours] = useState(24);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [animStep, setAnimStep] = useState(0);
   const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    getBatteryConfig().then(setConfig).catch(() => {});
-  }, []);
 
   // Animate through steps after run completes
   useEffect(() => {
@@ -117,7 +114,7 @@ export default function DigitalTwinPage() {
 
   const liveState: BatteryState = currentStep ? {
     soc: currentStep.soc_after,
-    energy_mwh: currentStep.soc_after * config.capacity_mwh,
+    energy_mwh: Number((currentStep.soc_after * (config.capacity_mwh || 10)).toFixed(2)),
     action: currentStep.action,
     charge_power_mw: currentStep.charge_power_mw,
     discharge_power_mw: currentStep.discharge_power_mw,
@@ -125,12 +122,14 @@ export default function DigitalTwinPage() {
     total_degradation_cost: currentHistory.reduce((s, h) => s + h.degradation_cost, 0),
     total_revenue: currentHistory.reduce((s, h) => s + h.revenue, 0),
     total_energy_cost: currentHistory.reduce((s, h) => s + h.energy_cost, 0),
-  } : {
-    soc: config.soc_initial,
-    energy_mwh: config.soc_initial * config.capacity_mwh,
-    action: 'idle', charge_power_mw: 0, discharge_power_mw: 0,
-    cycle_count: 0, total_degradation_cost: 0, total_revenue: 0, total_energy_cost: 0,
-  };
+  } : globalBatteryState;
+
+  // Real-time synchronization back to centralized BatteryContext
+  useEffect(() => {
+    if (result && currentStep) {
+      setBatteryState(liveState);
+    }
+  }, [animStep, result, currentStep, setBatteryState]);
 
   const socChartData = currentHistory.map(s => ({
     step: s.step,
@@ -193,16 +192,16 @@ export default function DigitalTwinPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 16 }}>
-        {/* Live Battery */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16 }}>
-            {result ? `Step ${animStep + 1}` : 'Ready'}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 280px) 1fr', gap: 16 }}>
+        {/* Live 3D Battery Digital Twin */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', padding: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14, width: '100%', textAlign: 'center' }}>
+            {result ? `Twin Simulation · Step ${animStep + 1}/${result.history.length}` : 'Digital Twin Real-Time'}
           </div>
-          <BatteryVisualization state={liveState} config={config} size="md" />
+          <Battery3D state={liveState} config={config} size="md" />
           {currentStep && (
-            <div style={{ marginTop: 12, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
-              ${currentStep.price.toFixed(2)}/MWh
+            <div style={{ marginTop: 12, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+              Market Price: ${currentStep.price.toFixed(2)}/MWh
             </div>
           )}
         </div>

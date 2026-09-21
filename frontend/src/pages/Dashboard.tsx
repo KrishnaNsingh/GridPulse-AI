@@ -6,24 +6,10 @@ import {
 import { Zap, TrendingUp, DollarSign, Activity, RefreshCw, Cpu, Shield, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { KPI } from '../components/KPI';
-import { BatteryVisualization } from '../components/BatteryVisualization';
+import { Battery3D } from '../components/3d/Battery3D';
+import { useBattery } from '../context/BatteryContext';
 import { getAnalyticsSummary, getLatestForecast, runOptimization } from '../services/api';
-import type { AnalyticsSummary, ForecastResponse, OptimizationResult, DispatchStep, BatteryConfig, BatteryState } from '../types';
-
-const DEFAULT_BATTERY: BatteryConfig = {
-  name: 'Demo BESS',
-  capacity_mwh: 10, power_mw: 2.5,
-  efficiency_charge: 0.95, efficiency_discharge: 0.95,
-  soc_min: 0.1, soc_max: 0.9, soc_initial: 0.5,
-  degradation_cost_per_mwh: 5, reserve_level: 0,
-};
-
-const DEFAULT_STATE: BatteryState = {
-  soc: 0.5, energy_mwh: 5, action: 'idle',
-  charge_power_mw: 0, discharge_power_mw: 0,
-  cycle_count: 0, total_degradation_cost: 0,
-  total_revenue: 0, total_energy_cost: 0,
-};
+import type { AnalyticsSummary, ForecastResponse, OptimizationResult, DispatchStep } from '../types';
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
@@ -69,29 +55,12 @@ function ActionBar({ dispatch }: { dispatch: DispatchStep[] }) {
 }
 
 export default function DashboardPage() {
+  const { config: batteryConfig, batteryState, setBatteryState } = useBattery();
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [optResult, setOptResult] = useState<OptimizationResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
-
-  const batteryState: BatteryState = (() => {
-    if (!optResult?.dispatch?.length) return DEFAULT_STATE;
-    const first = optResult.dispatch[0];
-    return {
-      soc: first.soc_start,
-      energy_mwh: first.soc_start * (optResult.battery_config?.capacity_mwh || 10),
-      action: first.action,
-      charge_power_mw: first.charge_power_mw,
-      discharge_power_mw: first.discharge_power_mw,
-      cycle_count: optResult.cycle_count || 0,
-      total_degradation_cost: optResult.total_degradation_cost || 0,
-      total_revenue: optResult.total_revenue || 0,
-      total_energy_cost: optResult.total_energy_cost || 0,
-    };
-  })();
-
-  const batteryConfig = optResult?.battery_config || DEFAULT_BATTERY;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -102,6 +71,7 @@ export default function DashboardPage() {
 
       // Parse latest optimization dispatch
       if (ana.latest_dispatch?.length) {
+        const first = ana.latest_dispatch[0];
         setOptResult({
           run_id: ana.latest_optimization?.run_id || 0,
           status: 'optimal',
@@ -114,21 +84,49 @@ export default function DashboardPage() {
           net_profit: ana.latest_optimization?.net_profit || 0,
           constraint_status: { passed: (ana.latest_optimization?.constraint_violations || 0) === 0, violations: ana.latest_optimization?.constraint_violations || 0, details: [] },
           dispatch: ana.latest_dispatch,
-          created_at: ana.latest_optimization?.created_at || '',
+          created_at: ana.latest_optimization?.created_at || new Date().toISOString(),
         });
+
+        // Sync global battery state
+        setBatteryState(prev => ({
+          ...prev,
+          soc: first.soc_start,
+          energy_mwh: Number((first.soc_start * (batteryConfig.capacity_mwh || 10)).toFixed(2)),
+          action: first.action,
+          charge_power_mw: first.charge_power_mw || 0,
+          discharge_power_mw: first.discharge_power_mw || 0,
+          total_degradation_cost: ana.latest_optimization?.total_degradation_cost || prev.total_degradation_cost,
+          total_revenue: ana.latest_optimization?.total_revenue || prev.total_revenue,
+          total_energy_cost: ana.latest_optimization?.total_energy_cost || prev.total_energy_cost,
+        }));
       }
-    } catch (err) {
-      console.error('Dashboard load error:', err);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [batteryConfig.capacity_mwh, setBatteryState]);
 
   const runOpt = async () => {
     setRunning(true);
     try {
       const result = await runOptimization({ horizon_hours: 24, use_forecast: true });
       setOptResult(result);
+      if (result.dispatch?.length) {
+        const first = result.dispatch[0];
+        setBatteryState(prev => ({
+          ...prev,
+          soc: first.soc_start,
+          energy_mwh: Number((first.soc_start * (batteryConfig.capacity_mwh || 10)).toFixed(2)),
+          action: first.action,
+          charge_power_mw: first.charge_power_mw,
+          discharge_power_mw: first.discharge_power_mw,
+          cycle_count: result.cycle_count || prev.cycle_count,
+          total_degradation_cost: result.total_degradation_cost || prev.total_degradation_cost,
+          total_revenue: result.total_revenue || prev.total_revenue,
+          total_energy_cost: result.total_energy_cost || prev.total_energy_cost,
+        }));
+      }
       await load();
     } catch (err) {
       console.error('Optimization error:', err);
@@ -248,12 +246,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content */}
-      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 16, marginTop: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 280px) 1fr', gap: 16, marginTop: 16 }}>
 
-        {/* Battery Visualization */}
-        <div className="card animate-fade-in" style={{ animationDelay: '0.1s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16 }}>Battery State</div>
-          <BatteryVisualization state={batteryState} config={batteryConfig} size="md" />
+        {/* 3D Battery Visualization */}
+        <div className="card animate-fade-in" style={{ animationDelay: '0.1s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', padding: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14, width: '100%', textAlign: 'center' }}>
+            Battery State
+          </div>
+          <Battery3D state={batteryState} config={batteryConfig} size="md" />
         </div>
 
         {/* Charts Column */}

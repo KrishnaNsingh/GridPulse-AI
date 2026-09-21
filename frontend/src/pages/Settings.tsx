@@ -1,16 +1,10 @@
-import { useState, useEffect } from 'react';
-import { getBatteryConfig, saveBatteryConfig } from '../services/api';
+import { useState } from 'react';
 import type { BatteryConfig } from '../types';
 import { Save, RefreshCw, Info } from 'lucide-react';
+import { useBattery } from '../context/BatteryContext';
+import { Battery3D } from '../components/3d/Battery3D';
 import { KineticTextLoader } from '@/components/ui/kinetic-text-loader';
 import { Preloader } from '@/components/Preloader';
-
-const DEFAULT: BatteryConfig = {
-  name: 'My BESS', capacity_mwh: 10, power_mw: 2.5,
-  efficiency_charge: 0.95, efficiency_discharge: 0.95,
-  soc_min: 0.1, soc_max: 0.9, soc_initial: 0.5,
-  degradation_cost_per_mwh: 5, reserve_level: 0,
-};
 
 function Field({ label, desc, children }: { label: string; desc?: string; children: React.ReactNode }) {
   return (
@@ -25,22 +19,19 @@ function Field({ label, desc, children }: { label: string; desc?: string; childr
 }
 
 export default function SettingsPage() {
-  const [config, setConfig] = useState<BatteryConfig>(DEFAULT);
-  const [loading, setLoading] = useState(true);
+  const { config, updateConfig, saveConfig, batteryState, isLoaded } = useBattery();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [previewPreloader, setPreviewPreloader] = useState(false);
 
-  useEffect(() => {
-    getBatteryConfig().then(c => { setConfig(c); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
-
   const save = async () => {
     setSaving(true);
     try {
-      await saveBatteryConfig(config);
+      await saveConfig(config);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save config:', err);
     } finally {
       setSaving(false);
     }
@@ -55,12 +46,12 @@ export default function SettingsPage() {
         min={min}
         max={max}
         value={config[key] as number}
-        onChange={e => setConfig({ ...config, [key]: parseFloat(e.target.value) || 0 })}
+        onChange={e => updateConfig({ [key]: parseFloat(e.target.value) || 0 })}
       />
     </Field>
   );
 
-  if (loading) return (
+  if (!isLoaded) return (
     <div style={{ padding: '80px 24px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)' }}>
       <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading configuration…
     </div>
@@ -86,7 +77,7 @@ export default function SettingsPage() {
         <div className="card">
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>Physical Parameters</div>
           <Field label="Battery Name">
-            <input className="input" value={config.name} onChange={e => setConfig({ ...config, name: e.target.value })} />
+            <input className="input" value={config.name} onChange={e => updateConfig({ name: e.target.value })} />
           </Field>
           {num('capacity_mwh', 0.5, 0.1, 10000, 'MWh')}
           {num('power_mw', 0.1, 0.01, 5000, 'MW')}
@@ -107,7 +98,7 @@ export default function SettingsPage() {
               step={0.01} min={0} max={1}
               value={config.soc_terminal ?? ''}
               placeholder="Optional"
-              onChange={e => setConfig({ ...config, soc_terminal: e.target.value === '' ? null : parseFloat(e.target.value) })}
+              onChange={e => updateConfig({ soc_terminal: e.target.value === '' ? null : parseFloat(e.target.value) })}
             />
           </Field>
           {num('reserve_level', 0.01, 0, 0.5)}
@@ -118,7 +109,7 @@ export default function SettingsPage() {
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>Economic Parameters</div>
           <Field label="Degradation Cost ($/MWh)" desc="Cost per MWh of energy discharged. Higher values discourage deep cycling.">
             <input type="number" className="input" step={0.5} min={0} max={1000} value={config.degradation_cost_per_mwh}
-              onChange={e => setConfig({ ...config, degradation_cost_per_mwh: parseFloat(e.target.value) || 0 })} />
+              onChange={e => updateConfig({ degradation_cost_per_mwh: parseFloat(e.target.value) || 0 })} />
           </Field>
           <div style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 8, padding: 12, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
             <div style={{ color: '#3b82f6', fontWeight: 600, marginBottom: 6 }}>Degradation Tier Model</div>
@@ -130,9 +121,14 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Live Summary */}
-        <div className="card">
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>Configuration Summary</div>
+        {/* Live Summary with 3D Preview */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>
+            Configuration Summary & Real-Time 3D State
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <Battery3D state={batteryState} config={config} height={190} size="sm" showFooter={false} />
+          </div>
           {[
             ['Capacity', `${config.capacity_mwh} MWh`],
             ['Power', `${config.power_mw} MW (C-rate: ${(config.power_mw / config.capacity_mwh).toFixed(2)})`],

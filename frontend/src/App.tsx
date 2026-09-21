@@ -13,6 +13,7 @@ import AnalyticsPage from './pages/Analytics';
 import AssistantPage from './pages/Assistant';
 import SettingsPage from './pages/Settings';
 import { AssistantProvider, useAssistant } from './context/AssistantContext';
+import { BatteryProvider } from './context/BatteryContext';
 
 function AssistantUrlSync() {
   const location = useLocation();
@@ -59,8 +60,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AssistantProvider>
-      <AppContent />
-    </AssistantProvider>
+    <BatteryProvider>
+      <AssistantProvider>
+        <AppContent />
+      </AssistantProvider>
+    </BatteryProvider>
   );
 }

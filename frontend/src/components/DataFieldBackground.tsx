@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
-import * as THREE from 'three';
+import React from 'react';
 
 /**
  * GridPulse AI Ambient Telemetry Background
- * Subtle WebGL harmonic wave field visualizing grid data flow.
+ * High-performance SVG harmonic wave field visualizing grid data flow.
+ * Uses zero WebGL contexts so all GPU resources are dedicated to 3D models.
  */
 
 export interface DataFieldProps {
@@ -19,116 +19,6 @@ export function DataFieldBackground({
   saturation = 1.0,
   brightness = 1.0,
 }: DataFieldProps) {
-  const mountRef = useRef<HTMLDivElement>(null);
-  const animRef = useRef<number>(0);
-
-  useEffect(() => {
-    const container = mountRef.current;
-    if (!container) return;
-
-    let width = container.clientWidth || window.innerWidth;
-    let height = container.clientHeight || window.innerHeight;
-
-    // 1. Scene & Camera Setup (exact framing: 55 fov, position (0, -2, 9))
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 100);
-    camera.position.set(0, -2, 9);
-
-    // 2. WebGL Renderer
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
-
-    // 3. Group with exact orientation tilt
-    const group = new THREE.Group();
-    scene.add(group);
-
-    const numLines = 60;
-    const pointsPerLine = 100;
-
-    // Warm neutrals: #D1C5B4 to #7A7B76
-    const colorStart = new THREE.Color('#D1C5B4');
-    const colorEnd = new THREE.Color('#7A7B76');
-
-    for (let i = 0; i < numLines; i++) {
-      const points: THREE.Vector3[] = [];
-      const xPos = (i - numLines / 2) * 0.22;
-      for (let j = 0; j < pointsPerLine; j++) {
-        const yPos = (j - pointsPerLine / 2) * 0.2;
-        points.push(new THREE.Vector3(xPos, yPos, 0));
-      }
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-
-      const color = new THREE.Color().lerpColors(colorStart, colorEnd, i / numLines);
-
-      const material = new THREE.LineBasicMaterial({
-        color: color,
-        transparent: true,
-        opacity: 0.12 + Math.random() * 0.22,
-        blending: THREE.AdditiveBlending,
-      });
-
-      const line = new THREE.Line(geometry, material);
-      group.add(line);
-    }
-
-    // Tilt to create the signature flowing plane
-    group.rotation.x = Math.PI / 3;
-    group.rotation.z = -Math.PI / 8;
-
-    const clock = new THREE.Clock();
-
-    // 4. Animation loop: flowing waves of silk/water
-    const animate = () => {
-      animRef.current = requestAnimationFrame(animate);
-      const time = clock.getElapsedTime() * 0.4; // relaxed, elegant pace
-
-      group.children.forEach((child) => {
-        const line = child as THREE.Line;
-        const positions = line.geometry.attributes.position.array as Float32Array;
-
-        for (let j = 0; j < pointsPerLine; j++) {
-          const idx = j * 3;
-          const x = positions[idx];
-          const y = positions[idx + 1];
-
-          // Rolling waves reminiscent of silk or fluid
-          const wave1 = Math.sin(y * 1.2 + time + x * 0.8) * 0.8;
-          const wave2 = Math.cos(x * 1.5 - time * 0.8 + y * 0.5) * 0.6;
-
-          positions[idx + 2] = wave1 + wave2;
-        }
-        line.geometry.attributes.position.needsUpdate = true;
-      });
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    // 5. Responsive Resize
-    const handleResize = () => {
-      if (!container) return;
-      width = container.clientWidth || window.innerWidth;
-      height = container.clientHeight || window.innerHeight;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      cancelAnimationFrame(animRef.current);
-      window.removeEventListener('resize', handleResize);
-      renderer.dispose();
-      if (renderer.domElement.parentNode === container) {
-        container.removeChild(renderer.domElement);
-      }
-    };
-  }, []);
-
   const filter = hue === 0 && saturation === 1 && brightness === 1
     ? undefined
     : `hue-rotate(${hue}deg) saturate(${saturation}) brightness(${brightness})`;
@@ -141,56 +31,84 @@ export function DataFieldBackground({
         zIndex: 0,
         pointerEvents: 'none',
         overflow: 'hidden',
-        backgroundColor: '#0E100F',
+        backgroundColor: '#070b13',
         filter,
       }}
     >
-      {/* Panel 2 Ambient Dark Ground */}
+      {/* Ambient Dark Mesh Ground */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundColor: '#121413',
+          background: 'radial-gradient(circle at 50% 20%, rgba(14, 28, 48, 0.45) 0%, rgba(7, 11, 19, 0.95) 75%)',
         }}
       >
-        {/* Three.js Canvas container for flowing silk waves */}
-        <div
-          ref={mountRef}
+        {/* Subtle SVG Harmonic Data Flow Grid */}
+        <svg
           style={{
             position: 'absolute',
             inset: 0,
             width: '100%',
             height: '100%',
+            opacity: 0.18,
           }}
-        />
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="gridGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.4" />
+              <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0.3" />
+            </linearGradient>
+            <pattern id="telemetryGrid" width="48" height="48" patternUnits="userSpaceOnUse">
+              <path d="M 48 0 L 0 0 0 48" fill="none" stroke="rgba(200, 220, 255, 0.04)" strokeWidth="1" />
+              <circle cx="0" cy="0" r="1" fill="rgba(56, 189, 248, 0.15)" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#telemetryGrid)" />
+          
+          {/* Subtle curved telemetry streamlines */}
+          <path
+            d="M-100 200 C 300 100, 700 350, 1200 200 S 1800 150, 2200 280"
+            fill="none"
+            stroke="url(#gridGrad)"
+            strokeWidth="1.2"
+            strokeDasharray="6,8"
+          />
+          <path
+            d="M-100 380 C 400 280, 800 480, 1300 340 S 1900 260, 2300 420"
+            fill="none"
+            stroke="url(#gridGrad)"
+            strokeWidth="1"
+            strokeDasharray="4,12"
+            opacity="0.6"
+          />
+          <path
+            d="M-100 550 C 350 480, 750 620, 1250 510 S 1850 420, 2250 580"
+            fill="none"
+            stroke="url(#gridGrad)"
+            strokeWidth="0.8"
+            opacity="0.4"
+          />
+        </svg>
 
-        {/* Inner Depth Shadows from reference */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            boxShadow: 'inset 0 0 140px rgba(14, 16, 15, 0.92)',
-          }}
-        />
-
-        {/* Global Subtle Grain/Texture Overlay from reference */}
+        {/* Global Subtle Grain Overlay */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
             mixBlendMode: 'overlay',
-            opacity: 0.3,
-            backgroundImage: 'repeating-linear-gradient(45deg, rgba(200,185,160,0.05) 0px, rgba(200,185,160,0.05) 1px, transparent 1px, transparent 12px)',
+            opacity: 0.25,
+            backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 12px)',
           }}
         />
 
-        {/* Corner Accents from reference */}
-        <div style={{ position: 'absolute', top: 0, left: 0, width: 20, height: 20, borderTop: '1px solid rgba(200,185,160,0.3)', borderLeft: '1px solid rgba(200,185,160,0.3)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: 0, right: 0, width: 20, height: 20, borderTop: '1px solid rgba(200,185,160,0.3)', borderRight: '1px solid rgba(200,185,160,0.3)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, width: 20, height: 20, borderBottom: '1px solid rgba(200,185,160,0.3)', borderLeft: '1px solid rgba(200,185,160,0.3)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderBottom: '1px solid rgba(200,185,160,0.3)', borderRight: '1px solid rgba(200,185,160,0.3)', pointerEvents: 'none' }} />
+        {/* Corner Accents */}
+        <div style={{ position: 'absolute', top: 0, left: 0, width: 20, height: 20, borderTop: '1px solid rgba(56,189,248,0.2)', borderLeft: '1px solid rgba(56,189,248,0.2)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 0, right: 0, width: 20, height: 20, borderTop: '1px solid rgba(56,189,248,0.2)', borderRight: '1px solid rgba(56,189,248,0.2)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, width: 20, height: 20, borderBottom: '1px solid rgba(56,189,248,0.2)', borderLeft: '1px solid rgba(56,189,248,0.2)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderBottom: '1px solid rgba(56,189,248,0.2)', borderRight: '1px solid rgba(56,189,248,0.2)', pointerEvents: 'none' }} />
 
         {/* Content Readability Gradient to keep foreground UI crisp */}
         <div
@@ -198,7 +116,7 @@ export function DataFieldBackground({
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            background: 'linear-gradient(180deg, rgba(7,11,20,0.72) 0%, rgba(7,11,20,0.45) 50%, rgba(7,11,20,0.85) 100%)',
+            background: 'linear-gradient(180deg, rgba(7,11,20,0.7) 0%, rgba(7,11,20,0.3) 50%, rgba(7,11,20,0.85) 100%)',
           }}
         />
       </div>
@@ -206,9 +124,6 @@ export function DataFieldBackground({
   );
 }
 
-/**
- * Compatible alias matching `@designcodeio/threeui`
- */
 export function StructureFlowCollection({
   variant = 'data-field',
   hue = 0,
@@ -223,9 +138,6 @@ export function StructureFlowCollection({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  if (variant === 'data-field') {
-    return <DataFieldBackground hue={hue} saturation={saturation} brightness={brightness} {...props} />;
-  }
   return <DataFieldBackground hue={hue} saturation={saturation} brightness={brightness} {...props} />;
 }
 
