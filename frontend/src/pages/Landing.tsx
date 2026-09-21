@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Zap, TrendingUp, Activity, Cpu, ChevronRight, Shield, Bot } from 'lucide-react';
+import { RisoSweepSection } from '../components/RisoSweepSection';
 
 const FEATURES = [
   { icon: <Cpu size={20} />, title: 'MILP Optimization', desc: 'PuLP + HiGHS solver. Globally optimal dispatch over the planning horizon with degradation penalties.', color: '#3b82f6' },
@@ -21,7 +22,7 @@ export default function LandingPage() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
-        style={{ textAlign: 'center', maxWidth: 700, marginBottom: 60 }}
+        style={{ textAlign: 'center', maxWidth: 700, marginBottom: 48 }}
       >
         {/* Logo */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
@@ -81,35 +82,14 @@ export default function LandingPage() {
         </div>
       </motion.div>
 
-      {/* Features Grid */}
+      {/* 6-Engine Feature Section powered by Riso Sweep Canvas 2D Typographic Carousel */}
       <motion.div
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.2 }}
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: 16,
-          width: '100%',
-          maxWidth: 960,
-        }}
+        style={{ width: '100%', maxWidth: 1120 }}
       >
-        {FEATURES.map((f, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.08 }}
-            className="card card-hover"
-            style={{ position: 'relative', overflow: 'hidden' }}
-          >
-            {/* Top color bar */}
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: f.color, opacity: 0.7 }} />
-            <div style={{ color: f.color, marginBottom: 10 }}>{f.icon}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#f0f4ff', marginBottom: 6 }}>{f.title}</div>
-            <div style={{ fontSize: 12, color: '#8b9bbf', lineHeight: 1.6 }}>{f.desc}</div>
-          </motion.div>
-        ))}
+        <RisoSweepSection features={FEATURES} />
       </motion.div>
 
       {/* Tech Stack */}
