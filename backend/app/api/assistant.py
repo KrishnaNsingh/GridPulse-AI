@@ -146,6 +146,39 @@ def _build_context(
             }
             context["current_price"] = first.get("price", 0)
 
+            # Buying and Selling price summaries from dispatch steps
+            charge_steps = [d for d in dispatch if d.get("action") == "charge" or (d.get("charge_power_mw") or 0) > 0]
+            discharge_steps = [d for d in dispatch if d.get("action") == "discharge" or (d.get("discharge_power_mw") or 0) > 0]
+            if charge_steps:
+                c_prices = [d.get("price", 0) for d in charge_steps]
+                context["buying_summary"] = {
+                    "charge_hours": [d.get("step") for d in charge_steps],
+                    "min_buy_price": round(min(c_prices), 2),
+                    "max_buy_price": round(max(c_prices), 2),
+                    "avg_buy_price": round(sum(c_prices) / len(c_prices), 2),
+                    "total_energy_cost": round(sum(d.get("energy_cost", 0) for d in charge_steps), 2),
+                }
+            if discharge_steps:
+                d_prices = [d.get("price", 0) for d in discharge_steps]
+                context["selling_summary"] = {
+                    "discharge_hours": [d.get("step") for d in discharge_steps],
+                    "min_sell_price": round(min(d_prices), 2),
+                    "max_sell_price": round(max(d_prices), 2),
+                    "avg_sell_price": round(sum(d_prices) / len(d_prices), 2),
+                    "total_revenue": round(sum(d.get("revenue", 0) for d in discharge_steps), 2),
+                }
+
+    # Historical price stats from Analytics
+    prices_db = db.query(PriceDataDB.price).all()
+    if prices_db:
+        vals = [p[0] for p in prices_db]
+        context["price_stats"] = {
+            "min": round(min(vals), 2),
+            "max": round(max(vals), 2),
+            "mean": round(sum(vals) / len(vals), 2),
+            "count": len(vals),
+        }
+
     # Forecast
     if include_forecast:
         try:

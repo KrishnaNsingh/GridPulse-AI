@@ -20,14 +20,17 @@ logger = logging.getLogger(__name__)
 
 
 def _build_system_prompt() -> str:
-    return """You are GridPulse AI, an expert battery energy storage system (BESS) analyst and engineer directly integrated with the GridPulse platform and website settings.
+    return """You are GridPulse AI, an expert battery energy storage system (BESS) analyst and engineer directly integrated with the GridPulse platform, website settings, and analytics telemetry.
 
-Your role is to EXPLAIN optimization decisions, dispatch schedules, and active battery system specifications according to the website's Settings section.
+Your role is to EXPLAIN optimization decisions, dispatch schedules, active battery specifications according to the Settings page, and buying / selling price telemetry from the Analytics page.
 You never make or change dispatch decisions — you explain them with rigorous technical and financial precision.
 
 Guidelines:
-- When asked "What is my battery configuration?", "What are my settings?", or questions about the BESS hardware parameters, state the exact active battery configuration provided in the context: Battery Name, Total Capacity (MWh), Maximum Power (MW), Efficiencies, SoC range (Min and Max %), Initial/Current SoC, and Degradation Penalty Cost ($/MWh).
-- Never claim you do not have access to the battery configuration; you have direct real-time access to the user's active BESS parameters from the Settings section.
+- When asked "What is my battery configuration?", "What are my settings?", or questions about the BESS hardware parameters from the Settings page:
+  State the exact active battery configuration provided in the context: Battery Name, Total Capacity (MWh), Usable Capacity (MWh), Maximum Power Rating (MW), C-rate, Efficiencies, SoC range (Min and Max %), Initial SoC, and Degradation Penalty Cost ($/MWh).
+- When asked about buying and selling prices, or details from the Analytics page:
+  State the wholesale electricity market price stats (Min, Max, Average $/MWh), the scheduled charging (buying) prices and hours, the scheduled discharging (selling) prices and hours, and the net arbitrage profit.
+- Never claim you do not have access to the battery configuration or analytics prices; you have direct real-time access to the user's active BESS parameters from the Settings and Analytics sections.
 - You speak precisely, using engineering terminology but remaining accessible.
 - Reference specific numbers from the context when explaining.
 - Focus on economic reasoning (arbitrage spread, peak vs trough pricing) and physical constraints (degradation avoidance, thermal/C-rate limits).
@@ -37,25 +40,54 @@ Never:
 - Suggest changing the optimization result
 - Override the dispatch decision
 - Make up numbers not in the context
-- Pretend to be uncertain about what the optimizer decided or what the battery settings are"""
+- Pretend to be uncertain about what the optimizer decided or what the battery settings or analytics prices are"""
 
 
 def _build_context_message(context: Dict[str, Any]) -> str:
     """Build a structured context message from optimization results."""
-    lines = ["=== GridPulse Optimization Context ===\n"]
+    lines = ["=== GridPulse Optimization & Telemetry Context ===\n"]
 
     if "battery_config" in context and context["battery_config"]:
         cfg = context["battery_config"]
-        lines.append(f"Battery Name: {cfg.get('name', 'Demo BESS')}")
-        lines.append(f"Battery Specs: {cfg.get('capacity_mwh', '?')} MWh capacity, {cfg.get('power_mw', '?')} MW power limit")
-        lines.append(f"  Efficiency: charge={cfg.get('efficiency_charge', 1.0):.0%}, discharge={cfg.get('efficiency_discharge', 1.0):.0%}")
-        lines.append(f"  SoC range: {cfg.get('soc_min', 0.1):.0%} to {cfg.get('soc_max', 0.9):.0%}, Initial/Current SoC: {cfg.get('soc_initial', 0.5):.0%}")
-        lines.append(f"  Degradation cost: ${cfg.get('degradation_cost_per_mwh', 26.5):.2f}/MWh")
-        lines.append(f"  Reserve level: {cfg.get('reserve_level', 0.5):.0%}\n")
+        cap = cfg.get('capacity_mwh', 10.0)
+        pwr = cfg.get('power_mw', 2.5)
+        soc_min = cfg.get('soc_min', 0.1)
+        soc_max = cfg.get('soc_max', 0.9)
+        usable = cap * (soc_max - soc_min)
+        c_rate = pwr / max(0.1, cap)
+        lines.append(f"Settings Page Battery Configuration:")
+        lines.append(f"  Name: {cfg.get('name', 'Demo BESS')}")
+        lines.append(f"  Capacity: {cap:.2f} MWh total ({usable:.2f} MWh usable between {soc_min:.0%} and {soc_max:.0%} SoC)")
+        lines.append(f"  Power Limit: {pwr:.2f} MW (C-rate: {c_rate:.2f})")
+        lines.append(f"  Efficiency: charge={cfg.get('efficiency_charge', 1.0):.0%}, discharge={cfg.get('efficiency_discharge', 1.0):.0%}, round-trip={(cfg.get('efficiency_charge',1.0)*cfg.get('efficiency_discharge',1.0)):.1%}")
+        lines.append(f"  State of Charge: Min {soc_min:.0%}, Max {soc_max:.0%}, Initial {cfg.get('soc_initial', 0.5):.0%}")
+        lines.append(f"  Degradation Cost: ${cfg.get('degradation_cost_per_mwh', 5.0):.2f}/MWh discharged")
+        lines.append(f"  Reserve Level: {cfg.get('reserve_level', 0.0):.0%}\n")
+
+    if "price_stats" in context and context["price_stats"]:
+        ps = context["price_stats"]
+        lines.append(f"Analytics Page Market Price Statistics (7-day history):")
+        lines.append(f"  Average Market Price: ${ps.get('mean', 0):.2f}/MWh")
+        lines.append(f"  Minimum Market Price: ${ps.get('min', 0):.2f}/MWh")
+        lines.append(f"  Maximum Market Price: ${ps.get('max', 0):.2f}/MWh\n")
+
+    if "buying_summary" in context and context["buying_summary"]:
+        bs = context["buying_summary"]
+        lines.append(f"Analytics Page Battery Buying (Charging) Details:")
+        lines.append(f"  Charging/Buying Hours: {bs.get('charge_hours', [])}")
+        lines.append(f"  Buying Prices: Min ${bs.get('min_buy_price', 0):.2f}/MWh, Max ${bs.get('max_buy_price', 0):.2f}/MWh, Average ${bs.get('avg_buy_price', 0):.2f}/MWh")
+        lines.append(f"  Total Energy Purchase Cost: ${bs.get('total_energy_cost', 0):.2f}\n")
+
+    if "selling_summary" in context and context["selling_summary"]:
+        ss = context["selling_summary"]
+        lines.append(f"Analytics Page Battery Selling (Discharging) Details:")
+        lines.append(f"  Discharging/Selling Hours: {ss.get('discharge_hours', [])}")
+        lines.append(f"  Selling Prices: Min ${ss.get('min_sell_price', 0):.2f}/MWh, Max ${ss.get('max_sell_price', 0):.2f}/MWh, Average ${ss.get('avg_sell_price', 0):.2f}/MWh")
+        lines.append(f"  Total Revenue Earned: ${ss.get('total_revenue', 0):.2f}\n")
 
     if "current_state" in context:
         state = context["current_state"]
-        lines.append(f"Current State:")
+        lines.append(f"Current Battery State:")
         lines.append(f"  SoC: {state.get('soc', '?'):.1%}")
         lines.append(f"  Action: {state.get('action', '?').upper()}")
         lines.append(f"  Charge power: {state.get('charge_power_mw', 0):.2f} MW")
@@ -69,16 +101,16 @@ def _build_context_message(context: Dict[str, Any]) -> str:
         lines.append(f"24h Forecast (P10/P50/P90): min=${min(f.get('p50',0) for f in fc):.1f}, max=${max(f.get('p50',0) for f in fc):.1f}/MWh")
         peak_hour = max(fc, key=lambda f: f.get('p50', 0))
         trough_hour = min(fc, key=lambda f: f.get('p50', 0))
-        lines.append(f"  Price peak: ${peak_hour.get('p50', '?'):.1f}/MWh at {peak_hour.get('timestamp', '?')}")
-        lines.append(f"  Price trough: ${trough_hour.get('p50', '?'):.1f}/MWh at {trough_hour.get('timestamp', '?')}\n")
+        lines.append(f"  Price peak (best sell window): ${peak_hour.get('p50', '?'):.1f}/MWh at {peak_hour.get('timestamp', '?')}")
+        lines.append(f"  Price trough (best buy window): ${trough_hour.get('p50', '?'):.1f}/MWh at {trough_hour.get('timestamp', '?')}\n")
 
     if "optimization_result" in context:
         opt = context["optimization_result"]
-        lines.append(f"Optimization Result ({opt.get('status', '?').upper()}):")
+        lines.append(f"Optimization Financial Result ({opt.get('status', '?').upper()}):")
         lines.append(f"  Net profit: ${opt.get('net_profit', 0):.2f}")
-        lines.append(f"  Revenue: ${opt.get('total_revenue', 0):.2f}")
-        lines.append(f"  Energy cost: ${opt.get('total_energy_cost', 0):.2f}")
-        lines.append(f"  Degradation cost: ${opt.get('total_degradation_cost', 0):.2f}")
+        lines.append(f"  Gross Revenue: ${opt.get('total_revenue', 0):.2f}")
+        lines.append(f"  Energy Cost: ${opt.get('total_energy_cost', 0):.2f}")
+        lines.append(f"  Degradation Cost: ${opt.get('total_degradation_cost', 0):.2f}")
         lines.append(f"  Solver runtime: {opt.get('runtime_seconds', 0):.3f}s")
         lines.append(f"  Constraint violations: {opt.get('constraint_violations', 0)}\n")
 

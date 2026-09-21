@@ -147,15 +147,47 @@ class VapiVoiceManager {
 
     if (apiKey && apiKey.length > 5) {
       try {
+        // Pre-request and warm up microphone permissions with optimal constraints
+        if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+          try {
+            const preStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              },
+            });
+            preStream.getAudioTracks().forEach(track => {
+              track.enabled = true;
+            });
+          } catch (micErr) {
+            console.warn('[Vapi] Microphone check warning:', micErr);
+          }
+        }
+
         const vapiModule: any = await import('@vapi-ai/web');
         const Vapi = typeof vapiModule.default === 'function'
           ? vapiModule.default
           : (typeof vapiModule.default?.default === 'function' ? vapiModule.default.default : vapiModule);
-        this.vapiInstance = new Vapi(apiKey);
+
+        // Initialize Vapi with explicit Daily configuration to guarantee mic input is enabled
+        this.vapiInstance = new Vapi(
+          apiKey,
+          undefined,
+          { alwaysIncludeMicInPermissionPrompt: true },
+          { audioSource: true, startAudioOff: false }
+        );
 
         this.vapiInstance.on('call-start', () => {
           this.isFallbackMode = false;
           this.setStatus('connected');
+          // Ensure Daily local audio track is explicitly active
+          try {
+            const dailyCall = this.vapiInstance.getDailyCallObject?.();
+            if (dailyCall) {
+              dailyCall.setLocalAudio(true);
+            }
+          } catch {}
         });
 
         this.vapiInstance.on('call-end', () => {
@@ -171,43 +203,59 @@ class VapiVoiceManager {
           // Assistant finished speaking
         });
 
+        // Assistant speaking volume
         this.vapiInstance.on('volume-level', (vol: number) => {
           this.emitVolume(vol);
         });
 
+        // User microphone volume level (drives orb pulsation and equalizer bars while user speaks)
+        this.vapiInstance.on('local-volume-level', (vol: number) => {
+          if (vol > 0.01) {
+            this.emitVolume(Math.min(1, vol * 4.5));
+          }
+        });
+
         this.vapiInstance.on('message', (message: any) => {
-          if (message.type === 'transcript') {
+          if (!message) return;
+          const msgType = String(message.type || '');
+
+          if (msgType === 'transcript' || msgType.startsWith('transcript')) {
             const role = message.role === 'user' ? 'user' : 'assistant';
-            if (message.transcript && message.transcript.trim()) {
+            const text = message.transcript || message.text || '';
+            if (text && text.trim()) {
               this.emitMessage({
                 role,
-                content: message.transcript.trim(),
+                content: text.trim(),
                 isPartial: message.transcriptType === 'partial',
               });
             }
-          } else if (message.type === 'conversation-update' && Array.isArray(message.conversation)) {
-            message.conversation.forEach((item: any) => {
-              if (item && item.content && (item.role === 'user' || item.role === 'assistant')) {
-                this.emitMessage({
-                  role: item.role,
-                  content: item.content.trim(),
-                  isPartial: false,
-                });
-              }
-            });
+          } else if (msgType === 'conversation-update' && Array.isArray(message.conversation)) {
+            // Only emit the latest conversation item to prevent re-emitting the entire history
+            const last = message.conversation[message.conversation.length - 1];
+            if (last && last.content && (last.role === 'user' || last.role === 'assistant')) {
+              this.emitMessage({
+                role: last.role,
+                content: last.content.trim(),
+                isPartial: false,
+              });
+            }
           }
         });
 
         this.vapiInstance.on('error', (err: any) => {
           console.error('[Vapi Error]', err);
           this.emitError(err);
-          // If connection fails, switch gracefully to browser fallback
-          this.startBrowserFallback(options);
+          // Only fallback if not already connected
+          if (this.status !== 'connected') {
+            this.startBrowserFallback(options);
+          }
         });
+
+        const shortGreeting = options?.firstMessage || "Hello! I am Axora, your GridPulse voice copilot, How can I assist you ?";
 
         if (assistantId && assistantId.length > 5) {
           const overrides: any = {
-            firstMessage: options?.firstMessage,
+            firstMessage: shortGreeting,
           };
           if (options?.systemPrompt) {
             overrides.model = {
@@ -225,12 +273,25 @@ class VapiVoiceManager {
         } else {
           // Start with assistant configuration object containing full BESS system prompt
           await this.vapiInstance.start({
-            firstMessage: options?.firstMessage ||
-              "Hello! I am Axora, your GridPulse AI voice copilot connected to your website battery settings. How can I assist you today?",
+            firstMessage: shortGreeting,
             transcriber: {
               provider: 'deepgram',
               model: 'nova-2',
               language: 'en-US',
+              smartFormat: true,
+              endpointing: 255,
+              keywords: [
+                'Axora:3',
+                'GridPulse:3',
+                'BESS:3',
+                'MWh:2',
+                'MW:2',
+                'SoC:2',
+                'DoD:2',
+                'arbitrage:2',
+                'HiGHS:2',
+                'degradation:2',
+              ],
             },
             model: {
               provider: 'openai',
@@ -239,7 +300,7 @@ class VapiVoiceManager {
                 {
                   role: 'system',
                   content: options?.systemPrompt ||
-                    "You are Axora & GridPulse AI, an intelligent, helpful voice assistant specializing in analytics and grid energy arbitrage. Keep answers concise, natural, and conversational.",
+                    "You are Axora, the official GridPulse AI voice copilot. Keep answers concise, natural, and conversational in 2-3 sentences.",
                 },
               ],
             },
@@ -375,7 +436,7 @@ class VapiVoiceManager {
       }
 
       this.setStatus('connected');
-      const greeting = options?.firstMessage || "Axora Voice connected. How can I help you today?";
+      const greeting = options?.firstMessage || "Hello! I am Axora, your GridPulse voice copilot, How can I assist you ?";
       this.speakBrowser(greeting);
       this.emitMessage({
         role: 'assistant',
